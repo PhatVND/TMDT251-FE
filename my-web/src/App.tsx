@@ -45,18 +45,34 @@ export default function App() {
   const [showQuickBooking, setShowQuickBooking] = useState(false);
   const [showAddGym, setShowAddGym] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
-  const [cart, setCart] = useState<Record<number, number>>({});
+  const [cartItems, setCartItems] = useState<any[]>([]);  // Calculate cart count
+  // Tính tổng số lượng để hiện trên Header
+const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Calculate cart count
-  const cartCount = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
+// 2. Hàm thêm vào giỏ (Logic thông minh: Nếu có rồi thì tăng số lượng)
+const handleAddToCart = (product: any, quantity: number = 1, size: string = "M") => {
+    setCartItems(prev => {
+        const existingItem = prev.find(item => item.id === product.id);
+        if (existingItem) {
+            return prev.map(item => 
+                item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item
+            );
+        }
+        return [...prev, { ...product, quantity, size }];
+    });
+    alert("Đã thêm vào giỏ hàng!");
+};
 
-  // Add to cart function
-  const addToCart = (productId: number) => {
-    setCart(prev => ({
-      ...prev,
-      [productId]: (prev[productId] || 0) + 1
-    }));
-  };
+// Hàm sửa số lượng trong giỏ
+const handleUpdateCartQuantity = (id: any, newQty: number) => {
+    if (newQty < 1) return;
+    setCartItems(prev => prev.map(item => item.id === id ? { ...item, quantity: newQty } : item));
+};
+
+// Hàm xóa khỏi giỏ
+const handleRemoveFromCart = (id: any) => {
+    setCartItems(prev => prev.filter(item => item.id !== id));
+};
 
   // Handle login
   const handleLogin = (type: UserType) => {
@@ -80,7 +96,6 @@ export default function App() {
     setSelectedTrainerId(null);
     setSelectedProductId(null);
     setShowQuickBooking(false);
-    setCart({});
   };
 
   // Show login screen if not logged in
@@ -116,6 +131,12 @@ export default function App() {
             onViewGyms={() => setCurrentScreen("gym-centers")}
             onShopProducts={() => setCurrentScreen("gym-stores")}
             onRefundPolicyClick={() => setCurrentScreen("refund-policy")}
+            onProductClick={(productId) => {
+            // 1. Lưu ID sản phẩm vào state (ép kiểu sang string vì ProductDetail dùng string)
+            setSelectedProductId(String(productId)); 
+            // 2. Chuyển sang màn hình chi tiết
+            setCurrentScreen("product-detail");
+        }}
           />
           <DesktopQuickBooking
             isOpen={showQuickBooking}
@@ -236,7 +257,7 @@ if (currentScreen === "profile" && selectedTrainerId) {
       );
     }
 
-    if (currentScreen === "gym-store-detail" && selectedGymId) {
+if (currentScreen === "gym-store-detail" && selectedGymId) {
       return (
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
@@ -250,8 +271,9 @@ if (currentScreen === "profile" && selectedTrainerId) {
               setSelectedProductId(productId);
               setCurrentScreen("product-detail");
             }}
-            cart={cart}
-            onAddToCart={addToCart}
+            // 👇 ĐÃ SỬA: Dùng cartItems và handleAddToCart
+            cartItems={cartItems} 
+            onAddToCart={handleAddToCart} 
           />
         </div>
       );
@@ -267,8 +289,9 @@ if (currentScreen === "profile" && selectedTrainerId) {
               setSelectedProductId(productId);
               setCurrentScreen("product-detail");
             }}
-            cart={cart}
-            onAddToCart={addToCart}
+            // 👇 ĐÃ SỬA: Dùng cartItems và handleAddToCart
+            cartItems={cartItems}
+            onAddToCart={handleAddToCart}
           />
         </div>
       );
@@ -287,26 +310,26 @@ if (currentScreen === "profile" && selectedTrainerId) {
                 setCurrentScreen("marketplace");
               }
             }}
-            onAddToCart={() => addToCart(Number(selectedProductId))}
-          />
+        onAddToCart={(product, qty, size) => handleAddToCart(product, qty, size)}/>
         </div>
       );
     }
 
-    if (currentScreen === "cart") {
-      return (
+if (currentScreen === "cart") {
+    return (
         <div>
-          <DesktopHeader {...headerProps} cartCount={cartCount} />
-          <DesktopCart
-            onBack={() => setCurrentScreen("gym-stores")}
-            onCheckout={() => {
-              // Handle checkout
-              alert("Checkout functionality coming soon!");
-            }}
-          />
+            <DesktopHeader {...headerProps} cartCount={cartCount} />
+            <DesktopCart
+                cartItems={cartItems} // Truyền mảng hàng thật
+                onBack={() => setCurrentScreen("gym-stores")}
+                onCheckout={() => { /* Logic sau khi thanh toán xong */ }}
+                onUpdateQuantity={handleUpdateCartQuantity}
+                onRemoveItem={handleRemoveFromCart}
+                onClearCart={() => setCartItems([])} // Xóa giỏ khi mua xong
+            />
         </div>
-      );
-    }
+    );
+}
 
     if (currentScreen === "orders") {
       return (

@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { TrendingUp, Users, Star, Heart, MapPin, Dumbbell, Filter } from "lucide-react";
+
+// 1. MỚI: Thêm icon ShoppingBag
+import { TrendingUp, Users, Star, Heart, MapPin, Dumbbell, Filter, ShoppingBag, ArrowRight } from "lucide-react"; 
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -12,7 +14,22 @@ import {
   SelectValue,
 } from "./ui/select";
 
-// --- QUAN TRỌNG: Thêm 'export' để file Profile có thể lấy dữ liệu này ---
+// 2. MỚI: Mock Data cho sản phẩm bán chạy (Sau này thay bằng API)
+const mockBestSellers = [
+  { id: 101, name: "Whey Protein Gold Standard", price: 1550000, category: "Supplement", image: "https://images.unsplash.com/photo-1593095191071-82b0cdd66110?w=400" },
+  { id: 102, name: "Thảm tập Yoga Premium", price: 450000, category: "Gear", image: "https://images.unsplash.com/photo-1592432678016-e910b452f9a2?w=400" },
+  { id: 103, name: "Dây kháng lực (Bộ 5)", price: 250000, category: "Gear", image: "https://images.unsplash.com/photo-1592432678016-e910b452f9a2?w=400" },
+  { id: 104, name: "Găng tay Gym Thoáng khí", price: 180000, category: "Accessories", image: "https://images.unsplash.com/photo-1593095191071-82b0cdd66110?w=400" },
+  { 
+    id: 105, 
+    name: "Bình nước giữ nhiệt Sport", 
+    price: 350000, 
+    category: "Accessories", 
+    image: "https://images.unsplash.com/photo-1602143407151-df111dbd274c?w=400" 
+  },
+];
+
+// --- QUAN TRỌNG: Giữ export để Profile dùng ---
 export const allTrainers = [
   {
     id: 1,
@@ -189,13 +206,15 @@ interface DesktopFeaturedTrainersProps {
   onViewGyms: () => void;
   onShopProducts: () => void;
   onRefundPolicyClick?: () => void;
+  onProductClick?: (productId: number) => void;
 }
 
 export function DesktopFeaturedTrainers({ 
   onTrainerClick, 
   onViewGyms,
   onShopProducts,
-  onRefundPolicyClick
+  onRefundPolicyClick,
+  onProductClick
 }: DesktopFeaturedTrainersProps) {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("highest");
@@ -293,8 +312,48 @@ export function DesktopFeaturedTrainers({
         </div>
       </div>
 
+      {/* 3. MỚI: SECTION SẢN PHẨM BÁN CHẠY (Nằm giữa Banner và Filter) */}
+      <div className="max-w-7xl mx-auto px-6 pt-12">
+        <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+                <ShoppingBag className="w-6 h-6 text-primary" />
+                <h2 className="text-2xl font-bold text-foreground">Sản phẩm bán chạy</h2>
+            </div>
+            <Button variant="ghost" onClick={onShopProducts} className="text-primary gap-1">
+                Xem tất cả cửa hàng <ArrowRight className="w-4 h-4" />
+            </Button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {mockBestSellers.map((product) => (
+                <div key={product.id} onClick={() => onProductClick && onProductClick(product.id)} 
+            className="cursor-pointer group"
+        >
+                    <Card className="overflow-hidden border-border bg-card hover:shadow-lg transition-all h-full">
+                        <div className="relative h-48 overflow-hidden bg-muted">
+                             <ImageWithFallback 
+                                src={product.image} 
+                                alt={product.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                             />
+                             <Badge className="absolute top-2 left-2 bg-red-500 hover:bg-red-600">Hot</Badge>
+                        </div>
+                        <div className="p-4">
+                            <p className="text-xs text-muted-foreground mb-1">{product.category}</p>
+                            <h3 className="font-semibold truncate mb-2 text-foreground">{product.name}</h3>
+                            <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-primary">{product.price.toLocaleString('vi-VN')}đ</span>
+                                <Button size="sm" variant="secondary" className="hover:bg-primary hover:text-white transition-colors">Mua ngay</Button>
+                            </div>
+                        </div>
+                    </Card>
+                </div>
+            ))}
+        </div>
+      </div>
+
       {/* Filters and Trainers */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Category Tabs */}
         <div className="flex items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-2 flex-wrap">
@@ -329,10 +388,10 @@ export function DesktopFeaturedTrainers({
         </div>
 
         {/* Results count */}
-        <div className="mb-6">
-          <p className="text-muted-foreground">
-            {filteredTrainers.length} trainers available
-          </p>
+        <div className="mb-6 flex items-center gap-2">
+            <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+            <span className="font-bold text-lg">Danh sách Huấn Luyện Viên</span>
+            <span className="text-muted-foreground ml-2">({filteredTrainers.length} available)</span>
         </div>
 
         {/* Trainers Grid */}
