@@ -199,24 +199,27 @@ export default function App() {
       );
     }
 
-    if (currentScreen === "profile" && selectedTrainerId) {
-      return (
-        <div>
-          <DesktopHeader {...headerProps} cartCount={cartCount} />
-          <DesktopPTProfile
-            onBack={() => {
-              if (selectedGymCenterId) {
-                setCurrentScreen("gym-center-detail");
-              } else {
-                setCurrentScreen("featured-trainers");
-              }
-              setSelectedTrainerId(null);
-            }}
-            onBooking={() => setCurrentScreen("booking")}
-          />
-        </div>
-      );
-    }
+if (currentScreen === "profile" && selectedTrainerId) {
+  return (
+    <div>
+      <DesktopHeader {...headerProps} cartCount={cartCount} />
+      <DesktopPTProfile
+        // THÊM DÒNG NÀY:
+        trainerId={selectedTrainerId} 
+        
+        onBack={() => {
+          if (selectedGymCenterId) {
+            setCurrentScreen("gym-center-detail");
+          } else {
+            setCurrentScreen("featured-trainers");
+          }
+          setSelectedTrainerId(null);
+        }}
+        onBooking={() => setCurrentScreen("booking")}
+      />
+    </div>
+  );
+}
 
     if (currentScreen === "gym-stores") {
       return (

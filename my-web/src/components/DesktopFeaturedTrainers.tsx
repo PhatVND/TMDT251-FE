@@ -12,8 +12,8 @@ import {
   SelectValue,
 } from "./ui/select";
 
-// All trainers from different gyms
-const allTrainers = [
+// --- QUAN TRỌNG: Thêm 'export' để file Profile có thể lấy dữ liệu này ---
+export const allTrainers = [
   {
     id: 1,
     name: "Marcus Steel",
@@ -338,79 +338,83 @@ export function DesktopFeaturedTrainers({
         {/* Trainers Grid */}
         <div className="grid grid-cols-4 gap-6">
           {filteredTrainers.map((trainer) => (
-            <Card
+            <div 
               key={trainer.id}
-              className="overflow-hidden cursor-pointer hover:shadow-xl transition-all duration-300 border-border bg-card group"
               onClick={() => onTrainerClick(trainer.id)}
+              className="cursor-pointer"
             >
-              <div className="relative h-72">
-                <ImageWithFallback
-                  src={trainer.image}
-                  alt={trainer.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                
-                {/* Favorite Button */}
-                <button
-                  onClick={(e) => toggleFavorite(trainer.id, e)}
-                  className="absolute top-3 right-3 w-10 h-10 rounded-full bg-primary hover:bg-primary/90 flex items-center justify-center transition-colors shadow-lg"
-                >
-                  <Heart 
-                    className={`w-5 h-5 ${
-                      favorites.includes(trainer.id) || trainer.favorite
-                        ? "fill-white text-white" 
-                        : "text-white"
-                    }`} 
+              <Card
+                className="overflow-hidden hover:shadow-xl transition-all duration-300 border-border bg-card group h-full"
+              >
+                <div className="relative h-72">
+                  <ImageWithFallback
+                    src={trainer.image}
+                    alt={trainer.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                </button>
-
-                {/* Gym Logo Badge */}
-                <div className="absolute top-3 left-3">
-                  <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden shadow-lg bg-card">
-                    <ImageWithFallback
-                      src={trainer.gymLogo}
-                      alt={trainer.gym}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-5">
-                <h3 className="text-foreground mb-1">{trainer.name}</h3>
-                <p className="text-muted-foreground text-sm mb-2">{trainer.specialty}</p>
-                
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-primary text-primary" />
-                    <span className="text-foreground text-sm">{trainer.rating}</span>
-                  </div>
-                  <span className="text-muted-foreground text-sm">({trainer.reviews})</span>
-                </div>
-
-                <div className="flex items-center gap-2 mb-4">
-                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-muted-foreground text-sm">{trainer.location}</span>
-                </div>
-
-                <div className="flex items-center justify-between pt-4 border-t border-border">
-                  <div>
-                    <span className="text-primary text-xl">${trainer.price}</span>
-                    <span className="text-muted-foreground text-sm">/session</span>
-                  </div>
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onTrainerClick(trainer.id);
-                    }}
-                    size="sm"
-                    className="bg-primary text-white"
+                  
+                  {/* Favorite Button */}
+                  <button
+                    onClick={(e) => toggleFavorite(trainer.id, e)}
+                    className="absolute top-3 right-3 w-10 h-10 rounded-full bg-primary hover:bg-primary/90 flex items-center justify-center transition-colors shadow-lg"
                   >
-                    Book
-                  </Button>
+                    <Heart 
+                      className={`w-5 h-5 ${
+                        favorites.includes(trainer.id) || trainer.favorite
+                          ? "fill-white text-white" 
+                          : "text-white"
+                      }`} 
+                    />
+                  </button>
+
+                  {/* Gym Logo Badge */}
+                  <div className="absolute top-3 left-3">
+                    <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden shadow-lg bg-card">
+                      <ImageWithFallback
+                        src={trainer.gymLogo}
+                        alt={trainer.gym}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </Card>
+
+                <div className="p-5">
+                  <h3 className="text-foreground mb-1">{trainer.name}</h3>
+                  <p className="text-muted-foreground text-sm mb-2">{trainer.specialty}</p>
+                  
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="flex items-center gap-1">
+                      <Star className="w-4 h-4 fill-primary text-primary" />
+                      <span className="text-foreground text-sm">{trainer.rating}</span>
+                    </div>
+                    <span className="text-muted-foreground text-sm">({trainer.reviews})</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 mb-4">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground text-sm">{trainer.location}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4 border-t border-border">
+                    <div>
+                      <span className="text-primary text-xl">${trainer.price}</span>
+                      <span className="text-muted-foreground text-sm">/session</span>
+                    </div>
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTrainerClick(trainer.id);
+                      }}
+                      size="sm"
+                      className="bg-primary text-white"
+                    >
+                      Book
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </div>
           ))}
         </div>
 

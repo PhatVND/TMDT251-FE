@@ -1,20 +1,17 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Star, MapPin, Calendar, Clock, Shield, Award, Users, Heart, ArrowLeft } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+// 1. IMPORT DANH SÁCH TRAINER TỪ FILE TRƯỚC
+import { allTrainers } from "./DesktopFeaturedTrainers"; 
 
-const trainerData = {
-  name: "Marcus Steel",
-  specialty: "Strength Training",
-  location: "New York, NY",
-  rating: 4.9,
-  reviewCount: 234,
+// Dữ liệu mẫu chi tiết (những cái mà danh sách bên ngoài không có)
+const DEFAULT_DETAILS = {
   clients: 450,
   experience: "8 years",
-  image: "https://images.unsplash.com/photo-1643142313816-0d9c86c49f91?w=800",
   bio: "Elite strength coach specializing in powerlifting and muscle building. Certified NSCA-CPT with 8 years of experience transforming bodies and minds. I focus on creating personalized training programs that deliver real, measurable results.",
   certifications: ["NSCA-CPT", "USAW Level 2", "Precision Nutrition", "Functional Movement Screen"],
   packages: [
@@ -30,13 +27,52 @@ const trainerData = {
 };
 
 interface DesktopPTProfileProps {
+  // 2. THÊM PROP NHẬN ID TỪ APP
+  trainerId?: number | null; 
   onBack: () => void;
   onBooking: () => void;
 }
 
-export function DesktopPTProfile({ onBack, onBooking }: DesktopPTProfileProps) {
+export function DesktopPTProfile({ trainerId, onBack, onBooking }: DesktopPTProfileProps) {
   const [selectedPackage, setSelectedPackage] = useState(2);
   const [liked, setLiked] = useState(false);
+
+  // 3. TÌM TRAINER DỰA VÀO ID VÀ TRỘN DỮ LIỆU
+  const trainerData = useMemo(() => {
+    // Tìm trainer trong list tổng
+    const foundTrainer = allTrainers.find(t => t.id === trainerId);
+
+    if (!foundTrainer) {
+      // Fallback nếu không tìm thấy (dùng dữ liệu mẫu mặc định)
+      return { 
+        name: "Unknown Trainer", 
+        specialty: "General Fitness", 
+        location: "Unknown", 
+        rating: 5, 
+        reviewCount: 0, 
+        image: "https://via.placeholder.com/800",
+        price: 0,
+        ...DEFAULT_DETAILS 
+      };
+    }
+
+    // Trộn dữ liệu tìm thấy với dữ liệu chi tiết mẫu
+    return {
+      ...DEFAULT_DETAILS, // Lấy Bio, Packages... mặc định
+      // Ghi đè các thông tin riêng của từng người:
+      name: foundTrainer.name,
+      specialty: foundTrainer.specialty,
+      location: foundTrainer.location,
+      rating: foundTrainer.rating,
+      reviewCount: foundTrainer.reviews,
+      image: foundTrainer.image, // Ảnh riêng
+      // Cập nhật giá gói tập theo giá riêng của PT này
+      packages: DEFAULT_DETAILS.packages.map(pkg => ({
+        ...pkg,
+        price: pkg.sessions * foundTrainer.price * (pkg.sessions > 10 ? 0.8 : pkg.sessions > 3 ? 0.9 : 1) // Tính giá động (giảm giá nếu mua nhiều)
+      }))
+    };
+  }, [trainerId]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -193,7 +229,8 @@ export function DesktopPTProfile({ onBack, onBooking }: DesktopPTProfileProps) {
                         )}
                       </div>
                       <div className="text-right">
-                        <div className="text-foreground">${pkg.price}</div>
+                        {/* Hiển thị giá đã tính toán lại */}
+                        <div className="text-foreground font-bold">${pkg.price.toFixed(0)}</div>
                       </div>
                     </div>
                     <p className="text-muted-foreground text-sm mb-2">{pkg.description}</p>
@@ -217,7 +254,7 @@ export function DesktopPTProfile({ onBack, onBooking }: DesktopPTProfileProps) {
               </div>
 
               <Button onClick={onBooking} className="w-full h-12 bg-primary text-white">
-                Book Now - ${trainerData.packages.find(p => p.id === selectedPackage)?.price}
+                Book Now - ${trainerData.packages.find(p => p.id === selectedPackage)?.price.toFixed(0)}
               </Button>
 
               <div className="mt-4 pt-4 border-t border-border">
