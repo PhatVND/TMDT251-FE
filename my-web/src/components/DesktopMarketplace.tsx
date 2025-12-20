@@ -132,6 +132,9 @@ interface DesktopMarketplaceProps {
 export function DesktopMarketplace({ onBack, onProductClick, cart, onAddToCart }: DesktopMarketplaceProps) {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [minPrice, setMinPrice] = useState<number | null>(null);
+  const [maxPrice, setMaxPrice] = useState<number | null>(null);
+  const [sortBy, setSortBy] = useState("popular");
 
   const cartCount = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
   const cartTotal = Object.entries(cart).reduce((sum, [id, qty]) => {
@@ -140,10 +143,32 @@ export function DesktopMarketplace({ onBack, onProductClick, cart, onAddToCart }
   }, 0);
 
   const filteredProducts = products.filter(p => {
-    const matchesCategory = selectedCategory === "all" || p.category === selectedCategory;
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+    const matchesCategory =
+      selectedCategory === "all" || p.category === selectedCategory;
+
+    const matchesSearch =
+      p.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesPrice =
+      (minPrice === null || p.price >= minPrice) &&
+      (maxPrice === null || p.price <= maxPrice);
+
+    return matchesCategory && matchesSearch && matchesPrice;
   });
+
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    switch (sortBy) {
+      case "price-low":
+        return a.price - b.price;
+      case "price-high":
+        return b.price - a.price;
+      case "rating":
+        return b.rating - a.rating;
+      default:
+        return 0;
+    }
+  });
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -193,8 +218,30 @@ export function DesktopMarketplace({ onBack, onProductClick, cart, onAddToCart }
             </Card>
 
             <Card className="p-5 border-border bg-card">
+              <h3 className="text-foreground mb-4">Price Range</h3>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  placeholder="Min"
+                  onChange={(e) =>
+                    setMinPrice(e.target.value ? Number(e.target.value) : null)
+                  }
+                  className="bg-background border-border"
+                />
+                <Input
+                  type="number"
+                  placeholder="Max"
+                  onChange={(e) =>
+                    setMaxPrice(e.target.value ? Number(e.target.value) : null)
+                  }
+                  className="bg-background border-border"
+                />
+              </div>
+            </Card>
+
+            <Card className="p-5 border-border bg-card">
               <h3 className="text-foreground mb-4">Sort By</h3>
-              <Select defaultValue="popular">
+              <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-full bg-background border-border">
                   <SelectValue />
                 </SelectTrigger>
@@ -230,13 +277,13 @@ export function DesktopMarketplace({ onBack, onProductClick, cart, onAddToCart }
           {/* Products Grid */}
           <div className="col-span-3">
             <div className="mb-6">
-              <p className="text-muted-foreground">{filteredProducts.length} products found</p>
+              <p className="text-muted-foreground">{sortedProducts.length} products found</p>
             </div>
 
             <div className="grid grid-cols-3 gap-6">
-              {filteredProducts.map((product) => (
-                <Card 
-                  key={product.id} 
+              {sortedProducts.map((product) => (
+                <Card
+                  key={product.id}
                   className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow border-border bg-card group"
                   onClick={() => onProductClick?.(String(product.id))}
                 >
