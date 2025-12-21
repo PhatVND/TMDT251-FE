@@ -1,42 +1,53 @@
 import { useState } from "react";
-import { DesktopLogin } from "./components/DesktopLogin";
-import { DesktopHeader } from "./components/DesktopHeader";
-import { DesktopFeaturedTrainers } from "./components/DesktopFeaturedTrainers";
-import { DesktopPTProfile } from "./components/DesktopPTProfile";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { BookingFlow } from "./components/BookingFlow";
-import { DesktopGymCenters } from "./components/DesktopGymCenters";
-import { DesktopGymCenterDetail } from "./components/DesktopGymCenterDetail";
-import { DesktopGymStores } from "./components/DesktopGymStores";
-import { DesktopGymStoreDetail } from "./components/DesktopGymStoreDetail";
-import { DesktopMarketplace } from "./components/DesktopMarketplace";
-import { DesktopProductDetail } from "./components/DesktopProductDetail";
-import { DesktopCart } from "./components/DesktopCart";
-import { DesktopOrders } from "./components/DesktopOrders";
 import { DesktopAbout } from "./components/DesktopAbout";
-import { DesktopUserProfile } from "./components/DesktopUserProfile";
-import { DesktopMyPT } from "./components/DesktopMyPT";
-import { DesktopCustomerHome } from "./components/DesktopCustomerHome";
-import { DesktopQuickBooking } from "./components/DesktopQuickBooking";
-import { DesktopPTDashboard } from "./components/DesktopPTDashboard";
 import { DesktopAdminDashboard } from "./components/DesktopAdminDashboard";
-import { DesktopUIKit } from "./components/DesktopUIKit";
-import { DesktopAgentDashboard } from "./components/DesktopAgentDashboard";
 import { DesktopAgentAddGym } from "./components/DesktopAgentAddGym";
-import { DesktopAgentGymDetail } from "./components/DesktopAgentGymDetail";
 import { DesktopAgentAddProduct } from "./components/DesktopAgentAddProduct";
-import { DesktopPTDashboardNew } from "./components/DesktopPTDashboardNew";
+import { DesktopAgentDashboard } from "./components/DesktopAgentDashboard";
+import { DesktopAgentGymDetail } from "./components/DesktopAgentGymDetail";
+import { DesktopCart } from "./components/DesktopCart";
+import { DesktopCustomerHome } from "./components/DesktopCustomerHome";
+import { DesktopFeaturedTrainers } from "./components/DesktopFeaturedTrainers";
+import { DesktopGymCenterDetail } from "./components/DesktopGymCenterDetail";
+import { DesktopGymCenters } from "./components/DesktopGymCenters";
+import { DesktopGymStoreDetail } from "./components/DesktopGymStoreDetail";
+import { DesktopGymStores } from "./components/DesktopGymStores";
+import { DesktopHeader } from "./components/DesktopHeader";
+import { DesktopLogin } from "./components/DesktopLogin";
+import { DesktopMarketplace } from "./components/DesktopMarketplace";
+import { DesktopMyPT } from "./components/DesktopMyPT";
+import { DesktopOrders } from "./components/DesktopOrders";
+import { DesktopProductDetail } from "./components/DesktopProductDetail";
 import { DesktopPTBookings } from "./components/DesktopPTBookings";
-import { DesktopPTMessages } from "./components/DesktopPTMessages";
+import { DesktopPTDashboardNew } from "./components/DesktopPTDashboardNew";
 import { DesktopPTGymInfo } from "./components/DesktopPTGymInfo";
+import { DesktopPTMessages } from "./components/DesktopPTMessages";
+import { DesktopPTProfile } from "./components/DesktopPTProfile";
+import { DesktopQuickBooking } from "./components/DesktopQuickBooking";
 import { DesktopRefundPolicy } from "./components/DesktopRefundPolicy";
+import { DesktopRegister } from "./components/DesktopRegister";
+import { DesktopUIKit } from "./components/DesktopUIKit";
+import { DesktopUserProfile } from "./components/DesktopUserProfile";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 
-type UserType = "customer" | "pt" | "agent" | "admin" | "ui-kit";
-type Screen = "home" | "featured-trainers" | "gym-centers" | "gym-center-detail" | "profile" | "booking" | "gym-stores" | "gym-store-detail" | "marketplace" | "product-detail" | "cart" | "orders" | "about" | "user-profile" | "my-pt" | "ui-kit" | "agent-dashboard" | "agent-gym-detail" | "pt-dashboard" | "pt-bookings" | "pt-messages" | "pt-gym-info" | "refund-policy";
+// Định nghĩa lại Screen Type cho MainApp
+type Screen = "home" | "featured-trainers" | "gym-centers" | "gym-center-detail" | "profile" | "booking" | "gym-stores" | "gym-store-detail" | "marketplace" | "product-detail" | "cart" | "orders" | "about" | "user-profile" | "my-pt" | "agent-dashboard" | "agent-gym-detail" | "pt-dashboard" | "pt-bookings" | "pt-messages" | "pt-gym-info" | "refund-policy";
 
-export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userType, setUserType] = useState<UserType | null>(null);
+// 1. COMPONENT BẢO VỆ ROUTE
+const PrivateRoute = ({ children }: { children: JSX.Element }) => {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) return <div>Loading...</div>;
+  return isAuthenticated ? children : <Navigate to="/login" />;
+};
+
+// Component này chỉ render khi user ĐÃ LOGIN
+const MainApp = () => {
+  const { user, logout } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<Screen>("featured-trainers");
+
+  // State quản lý Logic nghiệp vụ
   const [selectedTrainerId, setSelectedTrainerId] = useState<number | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [selectedGymId, setSelectedGymId] = useState<number | null>(null);
@@ -45,69 +56,36 @@ export default function App() {
   const [showQuickBooking, setShowQuickBooking] = useState(false);
   const [showAddGym, setShowAddGym] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
-  const [cartItems, setCartItems] = useState<any[]>([]);  // Calculate cart count
-  // Tính tổng số lượng để hiện trên Header
-const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const [cartItems, setCartItems] = useState<any[]>([]);
 
-// 2. Hàm thêm vào giỏ (Logic thông minh: Nếu có rồi thì tăng số lượng)
-const handleAddToCart = (product: any, quantity: number = 1, size: string = "M") => {
+  let userType = "customer";
+  if (user?.role === "TRAINER") userType = "pt";
+  if (user?.role === "BUSINESS") userType = "agent";
+  if (user?.role === "ADMIN") userType = "admin";
+
+  // Logic Giỏ hàng
+  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const handleAddToCart = (product: any, quantity: number = 1, size: string = "M") => {
     setCartItems(prev => {
-        const existingItem = prev.find(item => item.id === product.id);
-        if (existingItem) {
-            return prev.map(item => 
-                item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item
-            );
-        }
-        return [...prev, { ...product, quantity, size }];
+      const existingItem = prev.find(item => item.id === product.id);
+      if (existingItem) {
+        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item);
+      }
+      return [...prev, { ...product, quantity, size }];
     });
     alert("Đã thêm vào giỏ hàng!");
-};
-
-// Hàm sửa số lượng trong giỏ
-const handleUpdateCartQuantity = (id: any, newQty: number) => {
+  };
+  const handleUpdateCartQuantity = (id: any, newQty: number) => {
     if (newQty < 1) return;
     setCartItems(prev => prev.map(item => item.id === id ? { ...item, quantity: newQty } : item));
-};
-
-// Hàm xóa khỏi giỏ
-const handleRemoveFromCart = (id: any) => {
-    setCartItems(prev => prev.filter(item => item.id !== id));
-};
-
-  // Handle login
-  const handleLogin = (type: UserType) => {
-    setIsLoggedIn(true);
-    setUserType(type);
-    // Set appropriate default screen based on user type
-    if (type === "agent") {
-      setCurrentScreen("agent-dashboard");
-    } else if (type === "pt") {
-      setCurrentScreen("pt-dashboard");
-    } else {
-      setCurrentScreen("featured-trainers");
-    }
   };
+  const handleRemoveFromCart = (id: any) => setCartItems(prev => prev.filter(item => item.id !== id));
 
-  // Handle logout
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUserType(null);
-    setCurrentScreen("featured-trainers");
-    setSelectedTrainerId(null);
-    setSelectedProductId(null);
-    setShowQuickBooking(false);
-  };
-
-  // Show login screen if not logged in
-  if (!isLoggedIn) {
-    return <DesktopLogin onLogin={handleLogin} />;
-  }
-
-  // Customer flow
+  // CUSTOMER FLOW
   if (userType === "customer") {
     const headerProps = {
       userType: "Customer",
-      onSwitchUser: () => setUserType(null),
+      onSwitchUser: logout,
       onNavigateHome: () => setCurrentScreen("featured-trainers"),
       onNavigateTrainers: () => setCurrentScreen("featured-trainers"),
       onNavigateMarketplace: () => setCurrentScreen("gym-stores"),
@@ -123,29 +101,14 @@ const handleRemoveFromCart = (id: any) => {
       return (
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
-          <DesktopFeaturedTrainers 
-            onTrainerClick={(trainerId) => {
-              setSelectedTrainerId(trainerId);
-              setCurrentScreen("profile");
-            }}
+          <DesktopFeaturedTrainers
+            onTrainerClick={(id) => { setSelectedTrainerId(id); setCurrentScreen("profile"); }}
             onViewGyms={() => setCurrentScreen("gym-centers")}
             onShopProducts={() => setCurrentScreen("gym-stores")}
             onRefundPolicyClick={() => setCurrentScreen("refund-policy")}
-            onProductClick={(productId) => {
-            // 1. Lưu ID sản phẩm vào state (ép kiểu sang string vì ProductDetail dùng string)
-            setSelectedProductId(String(productId)); 
-            // 2. Chuyển sang màn hình chi tiết
-            setCurrentScreen("product-detail");
-        }}
+            onProductClick={(id) => { setSelectedProductId(String(id)); setCurrentScreen("product-detail"); }}
           />
-          <DesktopQuickBooking
-            isOpen={showQuickBooking}
-            onClose={() => setShowQuickBooking(false)}
-            onSelectTrainer={(id) => {
-              setSelectedTrainerId(id);
-              setCurrentScreen("profile");
-            }}
-          />
+          <DesktopQuickBooking isOpen={showQuickBooking} onClose={() => setShowQuickBooking(false)} onSelectTrainer={(id) => { setSelectedTrainerId(id); setCurrentScreen("profile"); }} />
         </div>
       );
     }
@@ -154,12 +117,9 @@ const handleRemoveFromCart = (id: any) => {
       return (
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
-          <DesktopGymCenters 
+          <DesktopGymCenters
             onBack={() => setCurrentScreen("featured-trainers")}
-            onGymClick={(gymCenterId) => {
-              setSelectedGymCenterId(gymCenterId);
-              setCurrentScreen("gym-center-detail");
-            }}
+            onGymClick={(id) => { setSelectedGymCenterId(id); setCurrentScreen("gym-center-detail"); }}
           />
         </div>
       );
@@ -171,14 +131,8 @@ const handleRemoveFromCart = (id: any) => {
           <DesktopHeader {...headerProps} cartCount={cartCount} />
           <DesktopGymCenterDetail
             gymId={selectedGymCenterId}
-            onBack={() => {
-              setCurrentScreen("gym-centers");
-              setSelectedGymCenterId(null);
-            }}
-            onTrainerClick={(trainerId) => {
-              setSelectedTrainerId(trainerId);
-              setCurrentScreen("profile");
-            }}
+            onBack={() => { setCurrentScreen("gym-centers"); setSelectedGymCenterId(null); }}
+            onTrainerClick={(id) => { setSelectedTrainerId(id); setCurrentScreen("profile"); }}
           />
         </div>
       );
@@ -190,14 +144,8 @@ const handleRemoveFromCart = (id: any) => {
           <DesktopHeader {...headerProps} cartCount={cartCount} />
           <DesktopMyPT
             onBack={() => setCurrentScreen("featured-trainers")}
-            onTrainerSelect={(id) => {
-              setSelectedTrainerId(id);
-              setCurrentScreen("profile");
-            }}
-            onBookSession={(id) => {
-              setSelectedTrainerId(id);
-              setCurrentScreen("booking");
-            }}
+            onTrainerSelect={(id) => { setSelectedTrainerId(id); setCurrentScreen("profile"); }}
+            onBookSession={(id) => { setSelectedTrainerId(id); setCurrentScreen("booking"); }}
           />
         </div>
       );
@@ -208,72 +156,51 @@ const handleRemoveFromCart = (id: any) => {
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
           <BookingFlow
-            onBack={() => {
-              if (selectedGymCenterId) {
-                setCurrentScreen("gym-center-detail");
-              } else {
-                setCurrentScreen("profile");
-              }
-            }}
+            onBack={() => selectedGymCenterId ? setCurrentScreen("gym-center-detail") : setCurrentScreen("profile")}
           />
         </div>
       );
     }
 
-if (currentScreen === "profile" && selectedTrainerId) {
-  return (
-    <div>
-      <DesktopHeader {...headerProps} cartCount={cartCount} />
-      <DesktopPTProfile
-        // THÊM DÒNG NÀY:
-        trainerId={selectedTrainerId} 
-        
-        onBack={() => {
-          if (selectedGymCenterId) {
-            setCurrentScreen("gym-center-detail");
-          } else {
-            setCurrentScreen("featured-trainers");
-          }
-          setSelectedTrainerId(null);
-        }}
-        onBooking={() => setCurrentScreen("booking")}
-      />
-    </div>
-  );
-}
+    if (currentScreen === "profile" && selectedTrainerId) {
+      return (
+        <div>
+          <DesktopHeader {...headerProps} cartCount={cartCount} />
+          <DesktopPTProfile
+            trainerId={selectedTrainerId}
+            onBack={() => {
+              if (selectedGymCenterId) setCurrentScreen("gym-center-detail");
+              else setCurrentScreen("featured-trainers");
+              setSelectedTrainerId(null);
+            }}
+            onBooking={() => setCurrentScreen("booking")}
+          />
+        </div>
+      );
+    }
 
     if (currentScreen === "gym-stores") {
       return (
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
-          <DesktopGymStores 
+          <DesktopGymStores
             onBack={() => setCurrentScreen("featured-trainers")}
-            onGymClick={(gymId) => {
-              setSelectedGymId(gymId);
-              setCurrentScreen("gym-store-detail");
-            }}
+            onGymClick={(id) => { setSelectedGymId(id); setCurrentScreen("gym-store-detail"); }}
           />
         </div>
       );
     }
 
-if (currentScreen === "gym-store-detail" && selectedGymId) {
+    if (currentScreen === "gym-store-detail" && selectedGymId) {
       return (
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
           <DesktopGymStoreDetail
             gymId={selectedGymId}
-            onBack={() => {
-              setCurrentScreen("gym-stores");
-              setSelectedGymId(null);
-            }}
-            onProductClick={(productId) => {
-              setSelectedProductId(productId);
-              setCurrentScreen("product-detail");
-            }}
-            // 👇 ĐÃ SỬA: Dùng cartItems và handleAddToCart
-            cartItems={cartItems} 
-            onAddToCart={handleAddToCart} 
+            onBack={() => { setCurrentScreen("gym-stores"); setSelectedGymId(null); }}
+            onProductClick={(id) => { setSelectedProductId(id); setCurrentScreen("product-detail"); }}
+            cartItems={cartItems}
+            onAddToCart={handleAddToCart}
           />
         </div>
       );
@@ -283,13 +210,9 @@ if (currentScreen === "gym-store-detail" && selectedGymId) {
       return (
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
-          <DesktopMarketplace 
+          <DesktopMarketplace
             onBack={() => setCurrentScreen("featured-trainers")}
-            onProductClick={(productId) => {
-              setSelectedProductId(productId);
-              setCurrentScreen("product-detail");
-            }}
-            // 👇 ĐÃ SỬA: Dùng cartItems và handleAddToCart
+            onProductClick={(id) => { setSelectedProductId(id); setCurrentScreen("product-detail"); }}
             cartItems={cartItems}
             onAddToCart={handleAddToCart}
           />
@@ -303,203 +226,121 @@ if (currentScreen === "gym-store-detail" && selectedGymId) {
           <DesktopHeader {...headerProps} cartCount={cartCount} />
           <DesktopProductDetail
             productId={selectedProductId}
-            onBack={() => {
-              if (selectedGymId) {
-                setCurrentScreen("gym-store-detail");
-              } else {
-                setCurrentScreen("marketplace");
-              }
-            }}
-        onAddToCart={(product, qty, size) => handleAddToCart(product, qty, size)}/>
-        </div>
-      );
-    }
-
-if (currentScreen === "cart") {
-    return (
-        <div>
-            <DesktopHeader {...headerProps} cartCount={cartCount} />
-            <DesktopCart
-                cartItems={cartItems} // Truyền mảng hàng thật
-                onBack={() => setCurrentScreen("gym-stores")}
-                onCheckout={() => { /* Logic sau khi thanh toán xong */ }}
-                onUpdateQuantity={handleUpdateCartQuantity}
-                onRemoveItem={handleRemoveFromCart}
-                onClearCart={() => setCartItems([])} // Xóa giỏ khi mua xong
-            />
-        </div>
-    );
-}
-
-    if (currentScreen === "orders") {
-      return (
-        <div>
-          <DesktopHeader {...headerProps} cartCount={cartCount} />
-          <DesktopOrders onBack={() => setCurrentScreen("featured-trainers")} />
-        </div>
-      );
-    }
-
-    if (currentScreen === "about") {
-      return (
-        <div>
-          <DesktopHeader {...headerProps} cartCount={cartCount} />
-          <DesktopAbout onBack={() => setCurrentScreen("featured-trainers")} />
-        </div>
-      );
-    }
-
-    if (currentScreen === "refund-policy") {
-      return (
-        <div>
-          <DesktopHeader {...headerProps} cartCount={cartCount} />
-          <DesktopRefundPolicy onBack={() => setCurrentScreen("featured-trainers")} />
-        </div>
-      );
-    }
-
-    if (currentScreen === "user-profile") {
-      return (
-        <div>
-          <DesktopHeader {...headerProps} cartCount={cartCount} />
-          <DesktopUserProfile 
-            onBack={() => setCurrentScreen("featured-trainers")} 
-            userType="Customer"
-            onLogout={handleLogout}
+            onBack={() => selectedGymId ? setCurrentScreen("gym-store-detail") : setCurrentScreen("marketplace")}
+            onAddToCart={handleAddToCart}
           />
         </div>
       );
     }
 
+    if (currentScreen === "cart") {
+      return (
+        <div>
+          <DesktopHeader {...headerProps} cartCount={cartCount} />
+          <DesktopCart
+            cartItems={cartItems}
+            onBack={() => setCurrentScreen("gym-stores")}
+            onCheckout={() => { alert("Thanh toán thành công!"); setCartItems([]); }}
+            onUpdateQuantity={handleUpdateCartQuantity}
+            onRemoveItem={handleRemoveFromCart}
+            onClearCart={() => setCartItems([])}
+          />
+        </div>
+      );
+    }
+
+    // Các màn hình phụ khác (Orders, About, Profile, RefundPolicy)
+    if (currentScreen === "orders") return <div><DesktopHeader {...headerProps} cartCount={cartCount} /><DesktopOrders onBack={() => setCurrentScreen("featured-trainers")} /></div>;
+    if (currentScreen === "about") return <div><DesktopHeader {...headerProps} cartCount={cartCount} /><DesktopAbout onBack={() => setCurrentScreen("featured-trainers")} /></div>;
+    if (currentScreen === "refund-policy") return <div><DesktopHeader {...headerProps} cartCount={cartCount} /><DesktopRefundPolicy onBack={() => setCurrentScreen("featured-trainers")} /></div>;
+    if (currentScreen === "user-profile") return <div><DesktopHeader {...headerProps} cartCount={cartCount} /><DesktopUserProfile onBack={() => setCurrentScreen("featured-trainers")} userType="Customer" onLogout={logout} /></div>;
+
+    // Default Customer Home
     return (
       <div>
         <DesktopHeader {...headerProps} cartCount={cartCount} />
         <DesktopCustomerHome
-          onTrainerSelect={(id) => {
-            // Navigate to featured trainers page
-            setCurrentScreen("featured-trainers");
-          }}
+          onTrainerSelect={() => setCurrentScreen("featured-trainers")}
           onMarketplaceClick={() => setCurrentScreen("gym-stores")}
         />
-        <DesktopQuickBooking
-          isOpen={showQuickBooking}
-          onClose={() => setShowQuickBooking(false)}
-          onSelectTrainer={(id) => {
-            setSelectedTrainerId(id);
-            setCurrentScreen("profile");
-          }}
-        />
+        <DesktopQuickBooking isOpen={showQuickBooking} onClose={() => setShowQuickBooking(false)} onSelectTrainer={(id) => { setSelectedTrainerId(id); setCurrentScreen("profile"); }} />
       </div>
     );
   }
 
-  // PT Dashboard
+  // PT FLOW
   if (userType === "pt") {
-    if (currentScreen === "pt-bookings") {
-      return (
-        <DesktopPTBookings 
-          onBack={() => setCurrentScreen("pt-dashboard")}
-          onMessageClient={(clientName) => {
-            setCurrentScreen("pt-messages");
-          }}
-        />
-      );
-    }
-
-    if (currentScreen === "pt-messages") {
-      return (
-        <DesktopPTMessages 
-          onBack={() => setCurrentScreen("pt-dashboard")}
-        />
-      );
-    }
-
-    if (currentScreen === "pt-gym-info") {
-      return (
-        <DesktopPTGymInfo 
-          onBack={() => setCurrentScreen("pt-dashboard")}
-        />
-      );
-    }
-
-    return (
-      <DesktopPTDashboardNew 
-        onViewBookings={() => setCurrentScreen("pt-bookings")}
-        onViewMessages={() => setCurrentScreen("pt-messages")}
-        onViewGym={() => setCurrentScreen("pt-gym-info")}
-      />
-    );
+    if (currentScreen === "pt-bookings") return <DesktopPTBookings onBack={() => setCurrentScreen("pt-dashboard")} onMessageClient={() => setCurrentScreen("pt-messages")} />;
+    if (currentScreen === "pt-messages") return <DesktopPTMessages onBack={() => setCurrentScreen("pt-dashboard")} />;
+    if (currentScreen === "pt-gym-info") return <DesktopPTGymInfo onBack={() => setCurrentScreen("pt-dashboard")} />;
+    return <DesktopPTDashboardNew onViewBookings={() => setCurrentScreen("pt-bookings")} onViewMessages={() => setCurrentScreen("pt-messages")} onViewGym={() => setCurrentScreen("pt-gym-info")} />;
   }
 
-  // Agent Dashboard
+  // AGENT FLOW
   if (userType === "agent") {
     if (currentScreen === "agent-gym-detail" && selectedAgentGymId) {
       return (
         <div>
-          <DesktopHeader userType="Agent" onSwitchUser={() => setUserType(null)} />
+          <DesktopHeader userType="Agent" onSwitchUser={logout} />
           <DesktopAgentGymDetail
             gymId={selectedAgentGymId}
-            onBack={() => {
-              setCurrentScreen("agent-dashboard");
-              setSelectedAgentGymId(null);
-            }}
+            onBack={() => { setCurrentScreen("agent-dashboard"); setSelectedAgentGymId(null); }}
             onAddProduct={() => setShowAddProduct(true)}
           />
-          <DesktopAgentAddProduct
-            isOpen={showAddProduct}
-            onClose={() => setShowAddProduct(false)}
-            onSubmit={(productData) => {
-              console.log("New product:", productData);
-              setShowAddProduct(false);
-              // Here you would add the product to the gym
-            }}
-          />
+          <DesktopAgentAddProduct isOpen={showAddProduct} onClose={() => setShowAddProduct(false)} onSubmit={() => setShowAddProduct(false)} />
         </div>
       );
     }
-
     return (
       <div>
-        <DesktopHeader userType="Agent" onSwitchUser={() => setUserType(null)} />
-        <DesktopAgentDashboard 
+        <DesktopHeader userType="Agent" onSwitchUser={logout} />
+        <DesktopAgentDashboard
           onAddGym={() => setShowAddGym(true)}
-          onGymClick={(gymId) => {
-            setSelectedAgentGymId(gymId);
-            setCurrentScreen("agent-gym-detail");
-          }}
+          onGymClick={(id) => { setSelectedAgentGymId(id); setCurrentScreen("agent-gym-detail"); }}
         />
-        <DesktopAgentAddGym
-          isOpen={showAddGym}
-          onClose={() => setShowAddGym(false)}
-          onSubmit={(gymData) => {
-            console.log("New gym:", gymData);
-            setShowAddGym(false);
-            // Here you would add the gym to the database
-          }}
-        />
+        <DesktopAgentAddGym isOpen={showAddGym} onClose={() => setShowAddGym(false)} onSubmit={() => setShowAddGym(false)} />
       </div>
     );
   }
 
-  // Admin Dashboard
+  // ADMIN FLOW
   if (userType === "admin") {
     return (
       <div>
-        <DesktopHeader userType="Admin" onSwitchUser={() => setUserType(null)} />
+        <DesktopHeader userType="Admin" onSwitchUser={logout} />
         <DesktopAdminDashboard />
       </div>
     );
   }
 
-  // UI Kit
-  if (userType === "ui-kit") {
-    return (
-      <DesktopUIKit onBack={() => {
-        setIsLoggedIn(false);
-        setUserType(null);
-      }} />
-    );
-  }
+  return <div>Unknown Role</div>;
+};
 
-  return null;
+// 3. ROOT COMPONENT
+// Wrapper cho Public Route (Nếu đã login thì không cho vào trang Login nữa)
+const PublicRoute = ({ children }: { children: JSX.Element }) => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <Navigate to="/" /> : children;
+};
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<Navigate to="/login" />} />
+          <Route path="/login" element={<PublicRoute><DesktopLogin /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute><DesktopRegister /></PublicRoute>} />
+          <Route path="/ui-kit" element={<DesktopUIKit onBack={() => window.location.href = '/login'} />} />
+
+          {/* Mọi route khác đều vào MainApp và được bảo vệ */}
+          <Route path="/*" element={
+            <PrivateRoute>
+              <MainApp />
+            </PrivateRoute>
+          } />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  );
 }
