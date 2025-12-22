@@ -143,7 +143,7 @@ export function DesktopGymStoreDetail({ gymId, onBack, onProductClick, cartItems
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-        
+
         <div className="absolute bottom-0 left-0 right-0">
           <div className="max-w-7xl mx-auto px-6 pb-6">
             <div className="flex items-end gap-6">
