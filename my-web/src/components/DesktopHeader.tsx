@@ -20,10 +20,10 @@ interface DesktopHeaderProps {
   cartCount?: number;
 }
 
-export function DesktopHeader({ 
-  userType = "Customer", 
-  onSwitchUser, 
-  onNavigateHome, 
+export function DesktopHeader({
+  userType = "Customer",
+  onSwitchUser,
+  onNavigateHome,
   onNavigateTrainers,
   onNavigateMyPT,
   onNavigateMarketplace,
@@ -41,11 +41,19 @@ export function DesktopHeader({
         <div className="max-w-7xl mx-auto px-6 py-2">
           <div className="flex items-center justify-between gap-8">
             {/* Logo */}
-            <div className="flex items-center gap-3 cursor-pointer" onClick={onNavigateHome}>
-              <MascotLogo className="w-24 h-24" />
-              <div>
-                <h1 className="text-foreground">FitConnect</h1>
-                <p className="text-muted-foreground text-xs">Find Your Strength</p>
+            <div
+              className="flex items-center gap-3 cursor-pointer"
+              onClick={onNavigateHome}
+            >
+              <MascotLogo className="w-12 h-12" />
+
+              <div className="leading-tight">
+                <h1 className="text-lg font-extrabold tracking-tight">
+                  FitConnect
+                </h1>
+                <p className="text-xs text-muted-foreground">
+                  Find Your Strength
+                </p>
               </div>
             </div>
 
@@ -67,9 +75,9 @@ export function DesktopHeader({
 
             {/* Actions */}
             <div className="flex items-center gap-3">
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className="relative"
                 onClick={() => setShowNotifications(!showNotifications)}
               >
@@ -96,7 +104,7 @@ export function DesktopHeader({
       </header>
 
       {/* Notifications Panel */}
-      <DesktopNotifications 
+      <DesktopNotifications
         isOpen={showNotifications}
         onClose={() => setShowNotifications(false)}
         onNotificationClick={(id) => {

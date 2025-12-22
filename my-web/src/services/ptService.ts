@@ -55,7 +55,7 @@ export interface CreateReviewRequest {
   trainerId: number;
 }
 
-const bookingService = {
+export const bookingService = {
   // Lấy danh sách booking (Của người đang đăng nhập - Giả sử là User ID 1)
   getMyBookings: async (currentUserId: number = 1): Promise<BookingAPI[]> => {
     try {
@@ -80,12 +80,12 @@ const ptService = {
   getAllTrainers: async (): Promise<Trainer[]> => {
     // Gọi endpoint /users (lấy cục lẩu thập cẩm về)
     const response = await axiosClient.get<UserAPI[]>('/users');
-    
+
     // Kiểm tra an toàn dữ liệu
     const allUsers = Array.isArray(response) ? response : (response as any).data || [];
 
     // --- BƯỚC QUAN TRỌNG NHẤT: LỌC VÀ CHẾ BIẾN DỮ LIỆU ---
-    
+
     // 1. Lọc: Chỉ lấy ông nào có role là TRAINER
     const onlyTrainers = allUsers.filter((user: UserAPI) => user.role === 'TRAINER');
 
@@ -95,18 +95,18 @@ const ptService = {
       name: t.fullName || "Huấn luyện viên", // Map fullName -> name
       specialization: t.specialty || "General Fitness", // Nếu null thì điền mặc định
       experience: t.experienceYear || 1, // Map experienceYear -> experience
-      
+
       // --- TỰ CHẾ DỮ LIỆU THIẾU (Fake data) ---
       // Tạo ảnh avatar dựa trên tên (dùng dịch vụ ui-avatars.com miễn phí)
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(t.fullName || "PT")}&background=random&size=200`,
-      
+
       // Random điểm đánh giá từ 4.5 đến 5.0 cho đẹp đội hình
       rating: parseFloat((4.5 + Math.random() * 0.5).toFixed(1))
     }));
 
     return cleanData;
   },
-getTrainerById: async (id: number): Promise<Trainer | null> => {
+  getTrainerById: async (id: number): Promise<Trainer | null> => {
     try {
       const response = await axiosClient.get<UserAPI>(`/users/${id}`);
       const data = (response as any).data || response;
@@ -119,7 +119,7 @@ getTrainerById: async (id: number): Promise<Trainer | null> => {
         experience: data.experienceYear || 1, // Lấy số năm KN thật
         bio: data.bio || `Huấn luyện viên chuyên nghiệp với chuyên môn ${data.specialty || "thể hình"}.`, // Lấy Bio thật
         certificate: data.certificate || "Certified Personal Trainer", // Lấy bằng cấp thật
-        
+
         // Mấy cái này Backend chưa có thì vẫn phải Fake, nhưng sẽ xử lý ở UI cho đẹp
         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.fullName || "PT")}&background=random&size=200`,
         rating: 0, // Để 0, ra ngoài UI mình sẽ random dựa theo ID
@@ -137,17 +137,14 @@ getTrainerById: async (id: number): Promise<Trainer | null> => {
 
       // LỌC: Chỉ lấy review nào mà trainer.id trùng với trainerId đang xem
       const filteredReviews = allReviews.filter((r: ReviewAPI) => r.trainer?.id === trainerId);
-      
+
       return filteredReviews;
     } catch (error) {
       console.error("Lỗi lấy reviews:", error);
       return [];
     }
   },
-createBooking: async (data: any) => {
-        return axiosClient.post('/bookings', data);
-    },
-getMyBookings: async (): Promise<BookingAPI[]> => {
+  getMyBookings: async (): Promise<BookingAPI[]> => {
     try {
       const response = await axiosClient.get<BookingAPI[]>('/bookings');
       // Trả về trực tiếp mảng dữ liệu từ API
@@ -159,7 +156,7 @@ getMyBookings: async (): Promise<BookingAPI[]> => {
   },
   createReview: async (data: CreateReviewRequest) => {
     return axiosClient.post('/reviews', data);
-  },getAllReviews: async (): Promise<ReviewAPI[]> => {
+  }, getAllReviews: async (): Promise<ReviewAPI[]> => {
     try {
       const response = await axiosClient.get<ReviewAPI[]>('/reviews');
       return Array.isArray(response) ? response : (response as any).data || [];
@@ -175,4 +172,4 @@ getMyBookings: async (): Promise<BookingAPI[]> => {
 
 };
 
-export default ptService; bookingService;
+export default ptService;

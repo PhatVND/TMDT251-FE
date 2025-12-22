@@ -8,14 +8,14 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import ptService, { type ReviewAPI, type CreateBookingRequest } from "../services/ptService";
 
 interface DesktopPTProfileProps {
-  trainerId?: number | null; 
+  trainerId?: number | null;
   onBack: () => void;
   onBooking: () => void;
 }
 
 // Hàm fake số liệu bổ sung
 const generateStaticStats = (id: number) => {
-  const clients = (id * 37) % 450 + 50; 
+  const clients = (id * 37) % 450 + 50;
   const basePrice = ((id * 7) % 60) + 40;
   return { clients, basePrice };
 };
@@ -41,41 +41,41 @@ export function DesktopPTProfile({ trainerId, onBack, onBooking }: DesktopPTProf
       setLoading(true);
       try {
         const [apiData, reviewsData] = await Promise.all([
-            ptService.getTrainerById(trainerId),
-            ptService.getReviewsByTrainerId(trainerId)
+          ptService.getTrainerById(trainerId),
+          ptService.getReviewsByTrainerId(trainerId)
         ]);
 
         if (apiData) {
-            let realRating = 0;
-            let reviewCount = reviewsData.length;
+          let realRating = 0;
+          let reviewCount = reviewsData.length;
 
-            if (reviewCount > 0) {
-                const totalStars = reviewsData.reduce((sum, r) => sum + r.rating, 0);
-                realRating = parseFloat((totalStars / reviewCount).toFixed(1));
-            } else {
-                realRating = 5.0; 
-            }
+          if (reviewCount > 0) {
+            const totalStars = reviewsData.reduce((sum, r) => sum + r.rating, 0);
+            realRating = parseFloat((totalStars / reviewCount).toFixed(1));
+          } else {
+            realRating = 5.0;
+          }
 
-            const stats = generateStaticStats(apiData.id);
-            let realCerts: string[] = apiData.certificate 
-                ? (apiData.certificate.includes(',') ? apiData.certificate.split(',').map((c: any) => c.trim()) : [apiData.certificate])
-                : ["Chưa cập nhật chứng chỉ"];
+          const stats = generateStaticStats(apiData.id);
+          let realCerts: string[] = apiData.certificate
+            ? (apiData.certificate.includes(',') ? apiData.certificate.split(',').map((c: any) => c.trim()) : [apiData.certificate])
+            : ["Chưa cập nhật chứng chỉ"];
 
-            setTrainerData({
-                ...apiData,
-                clients: stats.clients,
-                rating: realRating,
-                reviewCount: reviewCount,
-                reviewsList: reviewsData,
-                price: stats.basePrice,
-                location: ["Quận 1, TP.HCM", "Cầu Giấy, Hà Nội", "Hải Châu, Đà Nẵng"][apiData.id % 3], 
-                certifications: realCerts,
-                packages: [
-                    { id: 1, name: "Buổi Lẻ", price: stats.basePrice, duration: "60 phút", sessions: 1, description: "Thử tập một buổi để trải nghiệm." },
-                    { id: 2, name: "Gói Tuần", price: stats.basePrice * 4 * 0.9, duration: "60 phút", sessions: 4, popular: true, description: "Tập 4 buổi/tuần (Giảm 10%)." },
-                    { id: 3, name: "Gói Tháng", price: stats.basePrice * 16 * 0.8, duration: "60 phút", sessions: 16, description: "Cam kết 1 tháng (Giảm 20%)." }
-                ]
-            });
+          setTrainerData({
+            ...apiData,
+            clients: stats.clients,
+            rating: realRating,
+            reviewCount: reviewCount,
+            reviewsList: reviewsData,
+            price: stats.basePrice,
+            location: ["Quận 1, TP.HCM", "Cầu Giấy, Hà Nội", "Hải Châu, Đà Nẵng"][apiData.id % 3],
+            certifications: realCerts,
+            packages: [
+              { id: 1, name: "Buổi Lẻ", price: stats.basePrice, duration: "60 phút", sessions: 1, description: "Thử tập một buổi để trải nghiệm." },
+              { id: 2, name: "Gói Tuần", price: stats.basePrice * 4 * 0.9, duration: "60 phút", sessions: 4, popular: true, description: "Tập 4 buổi/tuần (Giảm 10%)." },
+              { id: 3, name: "Gói Tháng", price: stats.basePrice * 16 * 0.8, duration: "60 phút", sessions: 16, description: "Cam kết 1 tháng (Giảm 20%)." }
+            ]
+          });
         }
       } catch (error) {
         console.error("Lỗi:", error);
@@ -87,33 +87,18 @@ export function DesktopPTProfile({ trainerId, onBack, onBooking }: DesktopPTProf
   }, [trainerId]);
 
   // --- HÀM XỬ LÝ GỌI API POST BOOKING ---
-const handleBookingSubmit = async () => {
-  if (!trainerId || !trainerData) return;
-  const pkg = trainerData.packages.find((p: any) => p.id === selectedPackage);
-  if (!pkg) return;
+  const handleBookingSubmit = async () => {
+    if (!trainerId || !trainerData) return;
+    const pkg = trainerData.packages.find((p: any) => p.id === selectedPackage);
+    if (!pkg) return;
 
-  setIsBooking(true);
-  try {
-    // SỬA TẠI ĐÂY: Dùng đúng tên trường mà Backend yêu cầu
-    const bookingData = {
-      traineeId: 1, // ID của người đang đăng nhập
-      trainerId: trainerId, // ID của PT (Diana Prince)
-      date: new Date().toISOString(),
-      totalAmount: pkg.price
-    };
-
-    console.log("Payload gửi đi:", bookingData);
-
-    await ptService.createBooking(bookingData);
-    alert("Đặt lịch thành công!");
-    if (onBooking) onBooking(); 
-  } catch (error) {
-    console.error("Lỗi đặt lịch:", error);
-    alert("Đặt lịch thất bại. Vui lòng thử lại sau.");
-  } finally {
-    setIsBooking(false);
-  }
-};
+    onBooking({
+      trainerId: trainerData.id,
+      trainerName: trainerData.name,
+      packageId: pkg.id,
+      price: pkg.price
+    });
+  };
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   if (!trainerData) return <div className="p-10 text-center text-foreground">Không tìm thấy thông tin huấn luyện viên.</div>;
 
@@ -162,8 +147,8 @@ const handleBookingSubmit = async () => {
                   <p className="text-muted-foreground text-sm">Kinh nghiệm</p>
                 </div>
                 <div className="text-center border-l border-border flex flex-col justify-center items-center">
-                   <MapPin className="w-5 h-5 text-primary mb-1" />
-                   <p className="text-muted-foreground text-xs line-clamp-1">{trainerData.location}</p>
+                  <MapPin className="w-5 h-5 text-primary mb-1" />
+                  <p className="text-muted-foreground text-xs line-clamp-1">{trainerData.location}</p>
                 </div>
               </div>
             </Card>
@@ -181,25 +166,25 @@ const handleBookingSubmit = async () => {
               </TabsContent>
               <TabsContent value="reviews" className="space-y-4 mt-6">
                 {trainerData.reviewsList?.length > 0 ? (
-                    trainerData.reviewsList.map((review: ReviewAPI) => (
+                  trainerData.reviewsList.map((review: ReviewAPI) => (
                     <Card key={review.id} className="p-6 border-border bg-card shadow-sm">
-                        <div className="flex items-start gap-4">
+                      <div className="flex items-start gap-4">
                         <div className="w-10 h-10 rounded-full overflow-hidden border border-border flex-shrink-0">
-                            <ImageWithFallback src={`https://ui-avatars.com/api/?name=${encodeURIComponent(review.user.fullName || "User")}&background=random`} alt={review.user.fullName} className="w-full h-full object-cover" />
+                          <ImageWithFallback src={`https://ui-avatars.com/api/?name=${encodeURIComponent(review.user.fullName || "User")}&background=random`} alt={review.user.fullName} className="w-full h-full object-cover" />
                         </div>
                         <div>
-                            <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2 mb-1">
                             <h4 className="font-bold text-foreground">{review.user.fullName}</h4>
                             <div className="flex gap-0.5">{Array.from({ length: 5 }).map((_, i) => (<Star key={i} className={`w-3 h-3 ${i < review.rating ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground"}`} />))}</div>
-                            </div>
-                            <p className="text-muted-foreground text-sm mb-2">{review.comment}</p>
-                            <p className="text-xs text-muted-foreground/70">{formatDate(review.reviewDate)}</p>
+                          </div>
+                          <p className="text-muted-foreground text-sm mb-2">{review.comment}</p>
+                          <p className="text-xs text-muted-foreground/70">{formatDate(review.reviewDate)}</p>
                         </div>
-                        </div>
+                      </div>
                     </Card>
-                    ))
+                  ))
                 ) : (
-                    <div className="text-center py-12 text-muted-foreground bg-card rounded-lg border border-dashed">Chưa có đánh giá nào.</div>
+                  <div className="text-center py-12 text-muted-foreground bg-card rounded-lg border border-dashed">Chưa có đánh giá nào.</div>
                 )}
               </TabsContent>
             </Tabs>
@@ -216,8 +201,8 @@ const handleBookingSubmit = async () => {
                     <div className="flex justify-between items-center mb-1"><h4 className="font-bold text-foreground">{pkg.name}</h4><span className="font-bold text-primary text-xl">${pkg.price.toFixed(0)}</span></div>
                     <p className="text-xs text-muted-foreground mb-3">{pkg.description}</p>
                     <div className="flex gap-4 text-xs font-medium text-muted-foreground">
-                        <span className="flex items-center gap-1"><Calendar className="w-3 h-3"/> {pkg.sessions} buổi</span>
-                        <span className="flex items-center gap-1"><Clock className="w-3 h-3"/> 60 phút</span>
+                      <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {pkg.sessions} buổi</span>
+                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> 60 phút</span>
                     </div>
                   </div>
                 ))}

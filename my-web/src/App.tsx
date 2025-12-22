@@ -38,6 +38,12 @@ export default function App() {
   const [userType, setUserType] = useState<UserType | null>(null);
   const [currentScreen, setCurrentScreen] = useState<Screen>("featured-trainers");
   const [selectedTrainerId, setSelectedTrainerId] = useState<number | null>(null);
+  const [bookingContext, setBookingContext] = useState<{
+    trainerId: number;
+    trainerName: string;
+    packageId: number;
+    price: number;
+  } | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [selectedGymId, setSelectedGymId] = useState<number | null>(null);
   const [selectedGymCenterId, setSelectedGymCenterId] = useState<number | null>(null);
@@ -47,32 +53,34 @@ export default function App() {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [cartItems, setCartItems] = useState<any[]>([]);  // Calculate cart count
   // Tính tổng số lượng để hiện trên Header
-const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-// 2. Hàm thêm vào giỏ (Logic thông minh: Nếu có rồi thì tăng số lượng)
-const handleAddToCart = (product: any, quantity: number = 1, size: string = "M") => {
+
+
+  // 2. Hàm thêm vào giỏ (Logic thông minh: Nếu có rồi thì tăng số lượng)
+  const handleAddToCart = (product: any, quantity: number = 1, size: string = "M") => {
     setCartItems(prev => {
-        const existingItem = prev.find(item => item.id === product.id);
-        if (existingItem) {
-            return prev.map(item => 
-                item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item
-            );
-        }
-        return [...prev, { ...product, quantity, size }];
+      const existingItem = prev.find(item => item.id === product.id);
+      if (existingItem) {
+        return prev.map(item =>
+          item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item
+        );
+      }
+      return [...prev, { ...product, quantity, size }];
     });
     alert("Đã thêm vào giỏ hàng!");
-};
+  };
 
-// Hàm sửa số lượng trong giỏ
-const handleUpdateCartQuantity = (id: any, newQty: number) => {
+  // Hàm sửa số lượng trong giỏ
+  const handleUpdateCartQuantity = (id: any, newQty: number) => {
     if (newQty < 1) return;
     setCartItems(prev => prev.map(item => item.id === id ? { ...item, quantity: newQty } : item));
-};
+  };
 
-// Hàm xóa khỏi giỏ
-const handleRemoveFromCart = (id: any) => {
+  // Hàm xóa khỏi giỏ
+  const handleRemoveFromCart = (id: any) => {
     setCartItems(prev => prev.filter(item => item.id !== id));
-};
+  };
 
   // Handle login
   const handleLogin = (type: UserType) => {
@@ -123,7 +131,7 @@ const handleRemoveFromCart = (id: any) => {
       return (
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
-          <DesktopFeaturedTrainers 
+          <DesktopFeaturedTrainers
             onTrainerClick={(trainerId) => {
               setSelectedTrainerId(trainerId);
               setCurrentScreen("profile");
@@ -132,11 +140,11 @@ const handleRemoveFromCart = (id: any) => {
             onShopProducts={() => setCurrentScreen("gym-stores")}
             onRefundPolicyClick={() => setCurrentScreen("refund-policy")}
             onProductClick={(productId) => {
-            // 1. Lưu ID sản phẩm vào state (ép kiểu sang string vì ProductDetail dùng string)
-            setSelectedProductId(String(productId)); 
-            // 2. Chuyển sang màn hình chi tiết
-            setCurrentScreen("product-detail");
-        }}
+              // 1. Lưu ID sản phẩm vào state (ép kiểu sang string vì ProductDetail dùng string)
+              setSelectedProductId(String(productId));
+              // 2. Chuyển sang màn hình chi tiết
+              setCurrentScreen("product-detail");
+            }}
           />
           <DesktopQuickBooking
             isOpen={showQuickBooking}
@@ -154,7 +162,7 @@ const handleRemoveFromCart = (id: any) => {
       return (
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
-          <DesktopGymCenters 
+          <DesktopGymCenters
             onBack={() => setCurrentScreen("featured-trainers")}
             onGymClick={(gymCenterId) => {
               setSelectedGymCenterId(gymCenterId);
@@ -208,45 +216,43 @@ const handleRemoveFromCart = (id: any) => {
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
           <BookingFlow
+            bookingContext={bookingContext!}
+            onBack={() => setCurrentScreen("profile")}
+          />
+        </div>
+      );
+    }
+
+    if (currentScreen === "profile" && selectedTrainerId) {
+      return (
+        <div>
+          <DesktopHeader {...headerProps} cartCount={cartCount} />
+          <DesktopPTProfile
+            // THÊM DÒNG NÀY:
+            trainerId={selectedTrainerId}
+
             onBack={() => {
               if (selectedGymCenterId) {
                 setCurrentScreen("gym-center-detail");
               } else {
-                setCurrentScreen("profile");
+                setCurrentScreen("featured-trainers");
               }
+              setSelectedTrainerId(null);
+            }}
+            onBooking={(data) => {
+              setBookingContext(data);     // 🔥 LƯU DATA BOOKING
+              setCurrentScreen("booking"); // 🔥 CHUYỂN SANG CHỌN LỊCH
             }}
           />
         </div>
       );
     }
 
-if (currentScreen === "profile" && selectedTrainerId) {
-  return (
-    <div>
-      <DesktopHeader {...headerProps} cartCount={cartCount} />
-      <DesktopPTProfile
-        // THÊM DÒNG NÀY:
-        trainerId={selectedTrainerId} 
-        
-        onBack={() => {
-          if (selectedGymCenterId) {
-            setCurrentScreen("gym-center-detail");
-          } else {
-            setCurrentScreen("featured-trainers");
-          }
-          setSelectedTrainerId(null);
-        }}
-        onBooking={() => setCurrentScreen("booking")}
-      />
-    </div>
-  );
-}
-
     if (currentScreen === "gym-stores") {
       return (
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
-          <DesktopGymStores 
+          <DesktopGymStores
             onBack={() => setCurrentScreen("featured-trainers")}
             onGymClick={(gymId) => {
               setSelectedGymId(gymId);
@@ -257,7 +263,7 @@ if (currentScreen === "profile" && selectedTrainerId) {
       );
     }
 
-if (currentScreen === "gym-store-detail" && selectedGymId) {
+    if (currentScreen === "gym-store-detail" && selectedGymId) {
       return (
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
@@ -272,8 +278,8 @@ if (currentScreen === "gym-store-detail" && selectedGymId) {
               setCurrentScreen("product-detail");
             }}
             // 👇 ĐÃ SỬA: Dùng cartItems và handleAddToCart
-            cartItems={cartItems} 
-            onAddToCart={handleAddToCart} 
+            cartItems={cartItems}
+            onAddToCart={handleAddToCart}
           />
         </div>
       );
@@ -283,7 +289,7 @@ if (currentScreen === "gym-store-detail" && selectedGymId) {
       return (
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
-          <DesktopMarketplace 
+          <DesktopMarketplace
             onBack={() => setCurrentScreen("featured-trainers")}
             onProductClick={(productId) => {
               setSelectedProductId(productId);
@@ -310,26 +316,26 @@ if (currentScreen === "gym-store-detail" && selectedGymId) {
                 setCurrentScreen("marketplace");
               }
             }}
-        onAddToCart={(product, qty, size) => handleAddToCart(product, qty, size)}/>
+            onAddToCart={(product, qty, size) => handleAddToCart(product, qty, size)} />
         </div>
       );
     }
 
-if (currentScreen === "cart") {
-    return (
+    if (currentScreen === "cart") {
+      return (
         <div>
-            <DesktopHeader {...headerProps} cartCount={cartCount} />
-            <DesktopCart
-                cartItems={cartItems} // Truyền mảng hàng thật
-                onBack={() => setCurrentScreen("gym-stores")}
-                onCheckout={() => { /* Logic sau khi thanh toán xong */ }}
-                onUpdateQuantity={handleUpdateCartQuantity}
-                onRemoveItem={handleRemoveFromCart}
-                onClearCart={() => setCartItems([])} // Xóa giỏ khi mua xong
-            />
+          <DesktopHeader {...headerProps} cartCount={cartCount} />
+          <DesktopCart
+            cartItems={cartItems} // Truyền mảng hàng thật
+            onBack={() => setCurrentScreen("gym-stores")}
+            onCheckout={() => { /* Logic sau khi thanh toán xong */ }}
+            onUpdateQuantity={handleUpdateCartQuantity}
+            onRemoveItem={handleRemoveFromCart}
+            onClearCart={() => setCartItems([])} // Xóa giỏ khi mua xong
+          />
         </div>
-    );
-}
+      );
+    }
 
     if (currentScreen === "orders") {
       return (
@@ -362,8 +368,8 @@ if (currentScreen === "cart") {
       return (
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
-          <DesktopUserProfile 
-            onBack={() => setCurrentScreen("featured-trainers")} 
+          <DesktopUserProfile
+            onBack={() => setCurrentScreen("featured-trainers")}
             userType="Customer"
             onLogout={handleLogout}
           />
@@ -397,7 +403,7 @@ if (currentScreen === "cart") {
   if (userType === "pt") {
     if (currentScreen === "pt-bookings") {
       return (
-        <DesktopPTBookings 
+        <DesktopPTBookings
           onBack={() => setCurrentScreen("pt-dashboard")}
           onMessageClient={(clientName) => {
             setCurrentScreen("pt-messages");
@@ -408,7 +414,7 @@ if (currentScreen === "cart") {
 
     if (currentScreen === "pt-messages") {
       return (
-        <DesktopPTMessages 
+        <DesktopPTMessages
           onBack={() => setCurrentScreen("pt-dashboard")}
         />
       );
@@ -416,14 +422,14 @@ if (currentScreen === "cart") {
 
     if (currentScreen === "pt-gym-info") {
       return (
-        <DesktopPTGymInfo 
+        <DesktopPTGymInfo
           onBack={() => setCurrentScreen("pt-dashboard")}
         />
       );
     }
 
     return (
-      <DesktopPTDashboardNew 
+      <DesktopPTDashboardNew
         onViewBookings={() => setCurrentScreen("pt-bookings")}
         onViewMessages={() => setCurrentScreen("pt-messages")}
         onViewGym={() => setCurrentScreen("pt-gym-info")}
@@ -461,7 +467,7 @@ if (currentScreen === "cart") {
     return (
       <div>
         <DesktopHeader userType="Agent" onSwitchUser={() => setUserType(null)} />
-        <DesktopAgentDashboard 
+        <DesktopAgentDashboard
           onAddGym={() => setShowAddGym(true)}
           onGymClick={(gymId) => {
             setSelectedAgentGymId(gymId);

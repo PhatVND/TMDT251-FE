@@ -4,31 +4,82 @@ import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { bookingService } from "../services/ptService";
 
 const timeSlots = [
-  "6:00 AM", "7:00 AM", "8:00 AM", "9:00 AM",
-  "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM"
+  { label: "6:00 AM", value: "06:00" },
+  { label: "7:00 AM", value: "07:00" },
+  { label: "8:00 AM", value: "08:00" },
+  { label: "9:00 AM", value: "09:00" },
+  { label: "5:00 PM", value: "17:00" },
+  { label: "6:00 PM", value: "18:00" },
+  { label: "7:00 PM", value: "19:00" },
+  { label: "8:00 PM", value: "20:00" }
 ];
 
 const dates = [
-  { date: "16", day: "Tue", available: false },
-  { date: "17", day: "Wed", available: true },
-  { date: "20", day: "Sat", available: true },
-  { date: "21", day: "Sun", available: true }
+  { date: "2025-12-24", day: "Tue", available: false },
+  { date: "2025-12-25", day: "Wed", available: true },
+  { date: "2025-12-26", day: "Sat", available: true },
+  { date: "2025-12-27", day: "Sun", available: true }
 ];
 
+
 interface BookingFlowProps {
+  bookingContext: {
+    trainerId: number;
+    trainerName: string;
+    price: number;
+  };
   onBack: () => void;
 }
 
-export function BookingFlow({ onBack }: BookingFlowProps) {
-  const [selectedDate, setSelectedDate] = useState("17");
-  const [selectedTime, setSelectedTime] = useState("6:00 AM");
+
+
+export function BookingFlow({ onBack, bookingContext }: BookingFlowProps) {
+  const { trainerId, trainerName, price } = bookingContext;
+  const [selectedDate, setSelectedDate] = useState(
+    dates.find(d => d.available)?.date || ""
+  );
+
+  const [selectedTime, setSelectedTime] = useState(
+    timeSlots[0].value
+  );
+
   const [bookingComplete, setBookingComplete] = useState(false);
 
-  const handlePayment = () => {
-    setBookingComplete(true);
+  const handlePayment = async () => {
+    if (!selectedDate || !selectedTime) {
+      alert("Vui lòng chọn ngày và giờ");
+      return;
+    }
+    try {
+      await bookingService.createBooking({
+        traineeId: 1,              // TODO: lấy từ auth
+        trainerId: trainerId,      // từ bookingContext
+        date: buildBookingDateISO(),  // ⭐ Date object
+        totalAmount: price
+      });
+
+      setBookingComplete(true);
+    } catch (error) {
+      console.error("Booking failed FULL:", error);
+      alert("Đặt lịch thất bại (xem console)");
+    }
   };
+
+  const buildBookingDateISO = () => {
+    const local = new Date(`${selectedDate}T${selectedTime}:00`);
+    return local.toISOString(); // ⭐ RẤT QUAN TRỌNG
+  };
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+    }).format(value);
+
 
   if (bookingComplete) {
     return (
@@ -73,23 +124,22 @@ export function BookingFlow({ onBack }: BookingFlowProps) {
             {/* Date & Time Selection */}
             <Card className="p-6 border-border rounded-[20px]">
               <h3 className="text-foreground mb-4">Choose your preferred training day</h3>
-              
+
               <div className="grid grid-cols-4 gap-3 mb-6">
                 {dates.map((d) => (
                   <button
                     key={d.date}
                     onClick={() => d.available && setSelectedDate(d.date)}
                     disabled={!d.available}
-                    className={`p-4 rounded-[12px] text-center transition-all ${
-                      selectedDate === d.date
-                        ? "bg-primary text-white"
-                        : d.available
+                    className={`p-4 rounded-[12px] text-center transition-all ${selectedDate === d.date
+                      ? "bg-primary text-white"
+                      : d.available
                         ? "bg-secondary hover:bg-secondary/80 text-foreground"
                         : "bg-secondary/30 text-muted-foreground cursor-not-allowed"
-                    }`}
+                      }`}
                   >
                     <div className="text-xs mb-1">{d.day}</div>
-                    <div className="text-xl">{d.date}</div>
+                    <div className="text-xl">{d.date.slice(-2)}</div>
                   </button>
                 ))}
               </div>
@@ -97,15 +147,14 @@ export function BookingFlow({ onBack }: BookingFlowProps) {
               <div className="border-t border-border pt-6">
                 <h4 className="text-foreground mb-3">Available time slots</h4>
                 <div className="grid grid-cols-2 gap-3">
-                  {timeSlots.map((time) => (
+                  {timeSlots.map((t) => (
                     <Button
-                      key={time}
-                      onClick={() => setSelectedTime(time)}
-                      variant={selectedTime === time ? "default" : "outline"}
-                      className={`rounded-[12px] ${selectedTime === time ? "bg-primary text-white" : ""}`}
+                      key={t.value}
+                      onClick={() => setSelectedTime(t.value)}
+                      variant={selectedTime === t.value ? "default" : "outline"}
                     >
                       <Clock className="w-4 h-4 mr-2" />
-                      {time}
+                      {t.label}
                     </Button>
                   ))}
                 </div>
@@ -113,7 +162,7 @@ export function BookingFlow({ onBack }: BookingFlowProps) {
             </Card>
 
             {/* Payment Details */}
-            <Card className="p-6 border-border rounded-[20px]">
+            {/* <Card className="p-6 border-border rounded-[20px]">
               <h3 className="text-foreground mb-4">Enter your payment details</h3>
 
               <div className="space-y-4">
@@ -152,7 +201,7 @@ export function BookingFlow({ onBack }: BookingFlowProps) {
                   />
                 </div>
               </div>
-            </Card>
+            </Card> */}
           </div>
 
           {/* Right Column - Booking Summary (Sticky) */}
@@ -169,7 +218,7 @@ export function BookingFlow({ onBack }: BookingFlowProps) {
                     </div>
                     <div>
                       <h4 className="text-foreground">Training Session</h4>
-                      <p className="text-muted-foreground text-sm">with Marcus Steel</p>
+                      <p className="text-muted-foreground text-sm">with {trainerName}</p>
                     </div>
                   </div>
 
@@ -195,12 +244,12 @@ export function BookingFlow({ onBack }: BookingFlowProps) {
                       <CreditCard className="w-5 h-5 text-primary" />
                       <span className="text-foreground">Total</span>
                     </div>
-                    <span className="text-primary text-xl">$80.00</span>
+                    <span className="text-primary text-xl">{formatCurrency(price)}</span>
                   </div>
                 </div>
 
-                <Button 
-                  onClick={handlePayment} 
+                <Button
+                  onClick={handlePayment}
                   className="w-full bg-primary text-white rounded-[12px]"
                 >
                   Pay Now
