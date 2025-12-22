@@ -36,9 +36,6 @@ export function DesktopMarketplace({ onBack, onProductClick, cartItems, onAddToC
 
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [minPrice, setMinPrice] = useState<number | null>(null);
-  const [maxPrice, setMaxPrice] = useState<number | null>(null);
-  const [sortBy, setSortBy] = useState("popular");
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -105,37 +102,11 @@ useEffect(() => {
 
   // Filter Logic (Vẫn giữ nguyên chạy ở Client-side cho mượt)
   const filteredProducts = products.filter(p => {
-    const matchesCategory =
-      selectedCategory === "all" || p.category === selectedCategory;
-
-    const matchesSearch =
-      p.name.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesPrice =
-      (minPrice === null || p.price >= minPrice) &&
-      (maxPrice === null || p.price <= maxPrice);
-
-    return matchesCategory && matchesSearch && matchesPrice;
+    const matchesCategory = selectedCategory === "all" || p.category === selectedCategory;
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
   });
 
-<<<<<<< HEAD
-=======
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    switch (sortBy) {
-      case "price-low":
-        return a.price - b.price;
-      case "price-high":
-        return b.price - a.price;
-      case "rating":
-        return b.rating - a.rating;
-      default:
-        return 0;
-    }
-  });
-
-
-  // Hàm check xem item đã có trong giỏ chưa (để đổi text nút bấm)
->>>>>>> d44ae7977dbcb08c530b9675250c3d13c03bc773
   const getItemQuantityInCart = (productId: number) => {
     const item = cartItems.find(i => i.id === productId);
     return item ? item.quantity : 0;
@@ -158,7 +129,6 @@ useEffect(() => {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-<<<<<<< HEAD
         {/* 5. XỬ LÝ TRẠNG THÁI LOADING / ERROR */}
         {loading ? (
           <div className="flex h-[400px] w-full items-center justify-center">
@@ -166,93 +136,6 @@ useEffect(() => {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-muted-foreground">Loading products...</p>
             </div>
-=======
-        <div className="grid grid-cols-4 gap-8">
-          {/* Sidebar Filters */}
-          <div className="space-y-6">
-            <Card className="p-5 border-border bg-card">
-              <h3 className="text-foreground mb-4">Search</h3>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-background border-border"
-                />
-              </div>
-            </Card>
-
-            <Card className="p-5 border-border bg-card">
-              <h3 className="text-foreground mb-4">Categories</h3>
-              <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full" orientation="vertical">
-                <TabsList className="w-full flex-col h-auto bg-transparent gap-2">
-                  <TabsTrigger value="all" className="w-full justify-start">All Products</TabsTrigger>
-                  <TabsTrigger value="supplements" className="w-full justify-start">Supplements</TabsTrigger>
-                  <TabsTrigger value="equipment" className="w-full justify-start">Equipment</TabsTrigger>
-                  <TabsTrigger value="apparel" className="w-full justify-start">Apparel</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </Card>
-
-            <Card className="p-5 border-border bg-card">
-              <h3 className="text-foreground mb-4">Price Range</h3>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  placeholder="Min"
-                  onChange={(e) =>
-                    setMinPrice(e.target.value ? Number(e.target.value) : null)
-                  }
-                  className="bg-background border-border"
-                />
-                <Input
-                  type="number"
-                  placeholder="Max"
-                  onChange={(e) =>
-                    setMaxPrice(e.target.value ? Number(e.target.value) : null)
-                  }
-                  className="bg-background border-border"
-                />
-              </div>
-            </Card>
-
-            <Card className="p-5 border-border bg-card">
-              <h3 className="text-foreground mb-4">Sort By</h3>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full bg-background border-border">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="popular">Most Popular</SelectItem>
-                  <SelectItem value="price-low">Price: Low to High</SelectItem>
-                  <SelectItem value="price-high">Price: High to Low</SelectItem>
-                  <SelectItem value="rating">Highest Rated</SelectItem>
-                </SelectContent>
-              </Select>
-            </Card>
-
-            {/* Cart Summary Box */}
-            {cartCount > 0 && (
-              <Card className="p-5 border-primary bg-primary/5 border-2 sticky top-6">
-                <h3 className="text-foreground mb-3 font-bold">Cart Summary</h3>
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Items:</span>
-                    <span className="text-foreground">{cartCount}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-foreground font-semibold">Total:</span>
-                    <span className="text-primary font-bold">${cartTotal.toFixed(2)}</span>
-                  </div>
-                </div>
-                {/* Nút này chỉ để hiển thị, user bấm vào icon giỏ hàng trên header để checkout */}
-                <Button className="w-full bg-primary text-white pointer-events-none opacity-80">
-                  Items in Cart
-                </Button>
-              </Card>
-            )}
->>>>>>> d44ae7977dbcb08c530b9675250c3d13c03bc773
           </div>
         ) : error ? (
           <div className="flex h-[400px] w-full items-center justify-center">
@@ -279,7 +162,6 @@ useEffect(() => {
                 </div>
               </Card>
 
-<<<<<<< HEAD
               <Card className="p-5 border-border bg-card">
                 <h3 className="text-foreground mb-4">Categories</h3>
                 <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full" orientation="vertical">
@@ -333,41 +215,6 @@ useEffect(() => {
               <div className="mb-6">
                 <p className="text-muted-foreground">{filteredProducts.length} products found</p>
               </div>
-=======
-          {/* Products Grid */}
-          <div className="col-span-3">
-            <div className="mb-6">
-              <p className="text-muted-foreground">{sortedProducts.length} products found</p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-6">
-              {sortedProducts.map((product) => {
-                const qtyInCart = getItemQuantityInCart(product.id);
-                
-                return (
-                  <Card
-                    key={product.id}
-                    className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow border-border bg-card group flex flex-col h-full"
-                    onClick={() => onProductClick(String(product.id))}
-                  >
-                    <div className="relative h-56">
-                      <ImageWithFallback
-                        src={product.image}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      {product.discount && (
-                        <Badge className="absolute top-3 left-3 bg-primary text-white border-0">
-                          -{product.discount}% OFF
-                        </Badge>
-                      )}
-                      {product.stock < 20 && (
-                        <Badge className="absolute top-3 right-3 bg-destructive text-white border-0">
-                          Low Stock
-                        </Badge>
-                      )}
-                    </div>
->>>>>>> d44ae7977dbcb08c530b9675250c3d13c03bc773
 
               {filteredProducts.length > 0 ? (
                 <div className="grid grid-cols-3 gap-6">

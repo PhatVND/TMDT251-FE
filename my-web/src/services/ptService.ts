@@ -17,19 +17,17 @@ export interface UserAPI {
 }
 export interface BookingAPI {
   id: number;
-  date: string; // "2025-12-25T..."
-  status: string; // "CONFIRMED", "PENDING", ...
+  date: string;
+  status: string;
   totalAmount: number;
-  traineeUser?: UserAPI; // Người đặt (User ID 1)
-  trainerUser?: UserAPI; // PT được đặt
+  trainee: any; // Thay traineeUser thành trainee
+  trainer: UserAPI; // Thay trainerUser thành trainer
 }
 export interface CreateBookingRequest {
+  traineeId: number;
+  trainerId: number;
   date: string;
   totalAmount: number;
-  status: string;
-  // Tùy backend của bạn nhận object hay nhận ID, thường là object con chứa ID
-  traineeUser: { id: number };
-  trainerUser: { id: number };
 }
 export interface ReviewAPI {
   id: number;
@@ -50,6 +48,12 @@ export interface Trainer {
   bio?: string;
   certificate?: string;
 }
+export interface CreateReviewRequest {
+  comment: string;
+  rating: number;
+  traineeId: number;
+  trainerId: number;
+}
 
 const bookingService = {
   // Lấy danh sách booking (Của người đang đăng nhập - Giả sử là User ID 1)
@@ -59,7 +63,7 @@ const bookingService = {
       const allBookings = Array.isArray(response) ? response : (response as any).data || [];
 
       // Lọc booking của User hiện tại (Client-side filtering)
-      return allBookings.filter((b: BookingAPI) => b.traineeUser?.id === currentUserId);
+      return allBookings.filter((b: BookingAPI) => b.trainee?.id === currentUserId);
     } catch (error) {
       console.error("Lỗi lấy danh sách booking:", error);
       return [];
@@ -139,7 +143,31 @@ getTrainerById: async (id: number): Promise<Trainer | null> => {
       console.error("Lỗi lấy reviews:", error);
       return [];
     }
-  }
+  },
+createBooking: async (data: any) => {
+        return axiosClient.post('/bookings', data);
+    },
+getMyBookings: async (): Promise<BookingAPI[]> => {
+    try {
+      const response = await axiosClient.get<BookingAPI[]>('/bookings');
+      // Trả về trực tiếp mảng dữ liệu từ API
+      return Array.isArray(response) ? response : (response as any).data || [];
+    } catch (error) {
+      console.error("Lỗi gọi API /bookings:", error);
+      return [];
+    }
+  },
+  createReview: async (data: CreateReviewRequest) => {
+    return axiosClient.post('/reviews', data);
+  },getAllReviews: async (): Promise<ReviewAPI[]> => {
+    try {
+      const response = await axiosClient.get<ReviewAPI[]>('/reviews');
+      return Array.isArray(response) ? response : (response as any).data || [];
+    } catch (error) {
+      console.error("Lỗi lấy danh sách review:", error);
+      return [];
+    }
+  },
 
 
 
