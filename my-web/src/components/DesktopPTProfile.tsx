@@ -1,268 +1,215 @@
-import { useState, useMemo } from "react";
-import { Star, MapPin, Calendar, Clock, Shield, Award, Users, Heart, ArrowLeft } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Star, MapPin, Calendar, Clock, Shield, Award, Users, Heart, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-// 1. IMPORT DANH SÁCH TRAINER TỪ FILE TRƯỚC
-import { allTrainers } from "./DesktopFeaturedTrainers"; 
-
-// Dữ liệu mẫu chi tiết (những cái mà danh sách bên ngoài không có)
-const DEFAULT_DETAILS = {
-  clients: 450,
-  experience: "8 years",
-  bio: "Elite strength coach specializing in powerlifting and muscle building. Certified NSCA-CPT with 8 years of experience transforming bodies and minds. I focus on creating personalized training programs that deliver real, measurable results.",
-  certifications: ["NSCA-CPT", "USAW Level 2", "Precision Nutrition", "Functional Movement Screen"],
-  packages: [
-    { id: 1, name: "Single Session", price: 80, duration: "60 min", sessions: 1, description: "Perfect for trying out or one-time sessions" },
-    { id: 2, name: "Weekly Pack", price: 280, duration: "60 min", sessions: 4, popular: true, description: "Most popular - train 4 times per week" },
-    { id: 3, name: "Monthly Elite", price: 960, duration: "60 min", sessions: 16, description: "Best value - comprehensive monthly program" }
-  ],
-  reviews: [
-    { id: 1, name: "John Davis", rating: 5, text: "Best trainer I've ever worked with! Transformed my body in 3 months. Marcus is professional, knowledgeable, and really pushes you to achieve your goals.", date: "2 weeks ago", avatar: "JD" },
-    { id: 2, name: "Sarah Martinez", rating: 5, text: "Marcus knows his stuff. Every session is challenging and effective. I've gained strength I never thought possible.", date: "1 month ago", avatar: "SM" },
-    { id: 3, name: "Mike Roberts", rating: 4, text: "Great trainer, very professional and knowledgeable. Would recommend to anyone serious about strength training.", date: "2 months ago", avatar: "MR" }
-  ]
-};
+import ptService, { type ReviewAPI, type CreateBookingRequest } from "../services/ptService";
 
 interface DesktopPTProfileProps {
-  // 2. THÊM PROP NHẬN ID TỪ APP
-  trainerId?: number | null; 
+  trainerId?: number | null;
   onBack: () => void;
   onBooking: () => void;
 }
 
+// Hàm fake số liệu bổ sung
+const generateStaticStats = (id: number) => {
+  const clients = (id * 37) % 450 + 50;
+  const basePrice = ((id * 7) % 60) + 40;
+  return { clients, basePrice };
+};
+
+const formatDate = (dateString: string) => {
+  try {
+    return new Date(dateString).toLocaleDateString('vi-VN');
+  } catch {
+    return dateString;
+  }
+};
+
 export function DesktopPTProfile({ trainerId, onBack, onBooking }: DesktopPTProfileProps) {
   const [selectedPackage, setSelectedPackage] = useState(2);
   const [liked, setLiked] = useState(false);
+  const [trainerData, setTrainerData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [isBooking, setIsBooking] = useState(false);
 
-  // 3. TÌM TRAINER DỰA VÀO ID VÀ TRỘN DỮ LIỆU
-  const trainerData = useMemo(() => {
-    // Tìm trainer trong list tổng
-    const foundTrainer = allTrainers.find(t => t.id === trainerId);
+  useEffect(() => {
+    const fetchFullData = async () => {
+      if (!trainerId) return;
+      setLoading(true);
+      try {
+        const [apiData, reviewsData] = await Promise.all([
+          ptService.getTrainerById(trainerId),
+          ptService.getReviewsByTrainerId(trainerId)
+        ]);
 
-    if (!foundTrainer) {
-      // Fallback nếu không tìm thấy (dùng dữ liệu mẫu mặc định)
-      return { 
-        name: "Unknown Trainer", 
-        specialty: "General Fitness", 
-        location: "Unknown", 
-        rating: 5, 
-        reviewCount: 0, 
-        image: "https://via.placeholder.com/800",
-        price: 0,
-        ...DEFAULT_DETAILS 
-      };
-    }
+        if (apiData) {
+          let realRating = 0;
+          let reviewCount = reviewsData.length;
 
-    // Trộn dữ liệu tìm thấy với dữ liệu chi tiết mẫu
-    return {
-      ...DEFAULT_DETAILS, // Lấy Bio, Packages... mặc định
-      // Ghi đè các thông tin riêng của từng người:
-      name: foundTrainer.name,
-      specialty: foundTrainer.specialty,
-      location: foundTrainer.location,
-      rating: foundTrainer.rating,
-      reviewCount: foundTrainer.reviews,
-      image: foundTrainer.image, // Ảnh riêng
-      // Cập nhật giá gói tập theo giá riêng của PT này
-      packages: DEFAULT_DETAILS.packages.map(pkg => ({
-        ...pkg,
-        price: pkg.sessions * foundTrainer.price * (pkg.sessions > 10 ? 0.8 : pkg.sessions > 3 ? 0.9 : 1) // Tính giá động (giảm giá nếu mua nhiều)
-      }))
+          if (reviewCount > 0) {
+            const totalStars = reviewsData.reduce((sum, r) => sum + r.rating, 0);
+            realRating = parseFloat((totalStars / reviewCount).toFixed(1));
+          } else {
+            realRating = 5.0;
+          }
+
+          const stats = generateStaticStats(apiData.id);
+          let realCerts: string[] = apiData.certificate
+            ? (apiData.certificate.includes(',') ? apiData.certificate.split(',').map((c: any) => c.trim()) : [apiData.certificate])
+            : ["Chưa cập nhật chứng chỉ"];
+
+          setTrainerData({
+            ...apiData,
+            clients: stats.clients,
+            rating: realRating,
+            reviewCount: reviewCount,
+            reviewsList: reviewsData,
+            price: stats.basePrice,
+            location: ["Quận 1, TP.HCM", "Cầu Giấy, Hà Nội", "Hải Châu, Đà Nẵng"][apiData.id % 3],
+            certifications: realCerts,
+            packages: [
+              { id: 1, name: "Buổi Lẻ", price: stats.basePrice, duration: "60 phút", sessions: 1, description: "Thử tập một buổi để trải nghiệm." },
+              { id: 2, name: "Gói Tuần", price: stats.basePrice * 4 * 0.9, duration: "60 phút", sessions: 4, popular: true, description: "Tập 4 buổi/tuần (Giảm 10%)." },
+              { id: 3, name: "Gói Tháng", price: stats.basePrice * 16 * 0.8, duration: "60 phút", sessions: 16, description: "Cam kết 1 tháng (Giảm 20%)." }
+            ]
+          });
+        }
+      } catch (error) {
+        console.error("Lỗi:", error);
+      } finally {
+        setLoading(false);
+      }
     };
+    fetchFullData();
   }, [trainerId]);
 
+  // --- HÀM XỬ LÝ GỌI API POST BOOKING ---
+  const handleBookingSubmit = async () => {
+    if (!trainerId || !trainerData) return;
+    const pkg = trainerData.packages.find((p: any) => p.id === selectedPackage);
+    if (!pkg) return;
+
+    onBooking({
+      trainerId: trainerData.id,
+      trainerName: trainerData.name,
+      packageId: pkg.id,
+      price: pkg.price
+    });
+  };
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  if (!trainerData) return <div className="p-10 text-center text-foreground">Không tìm thấy thông tin huấn luyện viên.</div>;
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header with Back Button */}
-      <div className="bg-card border-b border-border">
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Header */}
+      <div className="bg-card border-b border-border sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <Button onClick={onBack} variant="ghost" className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Trainers
+            <ArrowLeft className="w-4 h-4" /> Quay lại danh sách
           </Button>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-3 gap-8">
-          {/* Left Column - Profile Info */}
-          <div className="col-span-2 space-y-6">
-            {/* Profile Header */}
-            <Card className="border-border bg-card">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Cột trái: Thông tin Profile */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="border-border bg-card overflow-hidden shadow-sm">
               <div className="relative h-80">
-                <ImageWithFallback
-                  src={trainerData.image}
-                  alt={trainerData.name}
-                  className="w-full h-full object-cover rounded-t-xl"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent rounded-t-xl" />
-                
-                <Button
-                  onClick={() => setLiked(!liked)}
-                  size="icon"
-                  className="absolute top-4 right-4 rounded-full bg-white/90 hover:bg-white"
-                >
-                  <Heart className={`w-5 h-5 ${liked ? "fill-primary text-primary" : "text-foreground"}`} />
+                <ImageWithFallback src={trainerData.avatar} alt={trainerData.name} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                <Button onClick={() => setLiked(!liked)} size="icon" className="absolute top-4 right-4 rounded-full bg-white/90 hover:bg-white text-black">
+                  <Heart className={`w-5 h-5 ${liked ? "fill-red-500 text-red-500" : "text-gray-600"}`} />
                 </Button>
-
-                <div className="absolute bottom-0 left-0 right-0 p-6">
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <h1 className="text-white mb-1 text-3xl">{trainerData.name}</h1>
-                      <p className="text-white/90 text-lg">{trainerData.specialty}</p>
-                    </div>
-                    <Badge className="bg-primary text-white border-0">
-                      <Shield className="w-3 h-3 mr-1" />
-                      Verified Pro
-                    </Badge>
+                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                  <h1 className="text-4xl font-bold mb-1">{trainerData.name}</h1>
+                  <div className="flex items-center gap-3">
+                    <p className="text-lg opacity-90">{trainerData.specialization}</p>
+                    <Badge className="bg-primary text-white border-0"><Shield className="w-3 h-3 mr-1" /> Verified</Badge>
                   </div>
                 </div>
               </div>
 
-              {/* Stats Bar */}
               <div className="grid grid-cols-4 gap-4 p-6 border-t border-border">
                 <div className="text-center">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Star className="w-5 h-5 fill-primary text-primary" />
-                    <span className="text-foreground text-xl">{trainerData.rating}</span>
-                  </div>
-                  <p className="text-muted-foreground text-sm">{trainerData.reviewCount} reviews</p>
+                  <div className="flex items-center justify-center gap-1 mb-1 text-primary"><Star className="w-5 h-5 fill-current" /><span className="text-foreground text-xl font-bold">{trainerData.rating}</span></div>
+                  <p className="text-muted-foreground text-sm">{trainerData.reviewCount} Đánh giá</p>
                 </div>
                 <div className="text-center border-l border-border">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Users className="w-5 h-5 text-primary" />
-                    <span className="text-foreground text-xl">{trainerData.clients}</span>
-                  </div>
-                  <p className="text-muted-foreground text-sm">Clients</p>
+                  <div className="flex items-center justify-center gap-1 mb-1 text-primary"><Users className="w-5 h-5" /><span className="text-foreground text-xl font-bold">{trainerData.clients}</span></div>
+                  <p className="text-muted-foreground text-sm">Học viên</p>
                 </div>
                 <div className="text-center border-l border-border">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Award className="w-5 h-5 text-primary" />
-                    <span className="text-foreground text-xl">{trainerData.experience}</span>
-                  </div>
-                  <p className="text-muted-foreground text-sm">Experience</p>
+                  <div className="flex items-center justify-center gap-1 mb-1 text-primary"><Award className="w-5 h-5" /><span className="text-foreground text-xl font-bold">{trainerData.experience} Năm</span></div>
+                  <p className="text-muted-foreground text-sm">Kinh nghiệm</p>
                 </div>
-                <div className="text-center border-l border-border">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <MapPin className="w-5 h-5 text-primary" />
-                  </div>
-                  <p className="text-muted-foreground text-sm">{trainerData.location}</p>
+                <div className="text-center border-l border-border flex flex-col justify-center items-center">
+                  <MapPin className="w-5 h-5 text-primary mb-1" />
+                  <p className="text-muted-foreground text-xs line-clamp-1">{trainerData.location}</p>
                 </div>
               </div>
             </Card>
 
-            {/* Content Tabs */}
             <Tabs defaultValue="about" className="w-full">
-              <TabsList className="w-full bg-card border border-border">
-                <TabsTrigger value="about" className="flex-1">About</TabsTrigger>
-                <TabsTrigger value="reviews" className="flex-1">Reviews</TabsTrigger>
+              <TabsList className="w-full bg-card border border-border h-12">
+                <TabsTrigger value="about" className="flex-1">Giới thiệu</TabsTrigger>
+                <TabsTrigger value="reviews" className="flex-1">Đánh giá ({trainerData.reviewCount})</TabsTrigger>
               </TabsList>
-
               <TabsContent value="about" className="space-y-6 mt-6">
                 <Card className="p-6 border-border bg-card">
-                  <h3 className="text-foreground mb-3">About Me</h3>
-                  <p className="text-muted-foreground leading-relaxed">{trainerData.bio}</p>
-                </Card>
-
-                <Card className="p-6 border-border bg-card">
-                  <h3 className="text-foreground mb-4">Certifications & Qualifications</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {trainerData.certifications.map((cert, idx) => (
-                      <div key={idx} className="flex items-center gap-3 p-3 bg-secondary rounded-lg">
-                        <Award className="w-5 h-5 text-primary" />
-                        <span className="text-foreground">{cert}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <h3 className="text-foreground font-bold mb-3 text-lg">Tiểu sử</h3>
+                  <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{trainerData.bio}</p>
                 </Card>
               </TabsContent>
-
               <TabsContent value="reviews" className="space-y-4 mt-6">
-                {trainerData.reviews.map((review) => (
-                  <Card key={review.id} className="p-6 border-border bg-card">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                        <span className="text-primary">{review.avatar}</span>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-foreground">{review.name}</h4>
-                          <div className="flex items-center gap-1">
-                            {Array.from({ length: review.rating }).map((_, i) => (
-                              <Star key={i} className="w-4 h-4 fill-primary text-primary" />
-                            ))}
-                          </div>
+                {trainerData.reviewsList?.length > 0 ? (
+                  trainerData.reviewsList.map((review: ReviewAPI) => (
+                    <Card key={review.id} className="p-6 border-border bg-card shadow-sm">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 rounded-full overflow-hidden border border-border flex-shrink-0">
+                          <ImageWithFallback src={`https://ui-avatars.com/api/?name=${encodeURIComponent(review.user.fullName || "User")}&background=random`} alt={review.user.fullName} className="w-full h-full object-cover" />
                         </div>
-                        <p className="text-muted-foreground mb-2">{review.text}</p>
-                        <p className="text-muted-foreground text-sm">{review.date}</p>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-bold text-foreground">{review.user.fullName}</h4>
+                            <div className="flex gap-0.5">{Array.from({ length: 5 }).map((_, i) => (<Star key={i} className={`w-3 h-3 ${i < review.rating ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground"}`} />))}</div>
+                          </div>
+                          <p className="text-muted-foreground text-sm mb-2">{review.comment}</p>
+                          <p className="text-xs text-muted-foreground/70">{formatDate(review.reviewDate)}</p>
+                        </div>
                       </div>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  ))
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground bg-card rounded-lg border border-dashed">Chưa có đánh giá nào.</div>
+                )}
               </TabsContent>
             </Tabs>
           </div>
 
-          {/* Right Column - Booking */}
+          {/* Cột phải: Chọn gói tập */}
           <div className="space-y-6">
-            <Card className="p-6 border-border bg-card sticky top-24">
-              <h3 className="text-foreground mb-4">Select Package</h3>
+            <Card className="p-6 border-border bg-card sticky top-24 shadow-md">
+              <h3 className="text-foreground font-bold mb-4 text-xl">Chọn gói tập</h3>
               <div className="space-y-3 mb-6">
-                {trainerData.packages.map((pkg) => (
-                  <div
-                    key={pkg.id}
-                    onClick={() => setSelectedPackage(pkg.id)}
-                    className={`p-4 rounded-lg cursor-pointer transition-all border-2 ${
-                      selectedPackage === pkg.id
-                        ? "border-primary bg-primary/5"
-                        : "border-border bg-background hover:border-primary/50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-foreground">{pkg.name}</h4>
-                        {pkg.popular && (
-                          <Badge className="bg-primary text-white border-0 text-xs">Popular</Badge>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        {/* Hiển thị giá đã tính toán lại */}
-                        <div className="text-foreground font-bold">${pkg.price.toFixed(0)}</div>
-                      </div>
+                {trainerData.packages.map((pkg: any) => (
+                  <div key={pkg.id} onClick={() => setSelectedPackage(pkg.id)} className={`p-4 rounded-xl cursor-pointer transition-all border-2 relative ${selectedPackage === pkg.id ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-background hover:border-primary/30"}`}>
+                    {pkg.popular && <Badge className="absolute -top-2.5 right-4 bg-primary text-white text-[10px] uppercase font-bold">Phổ biến</Badge>}
+                    <div className="flex justify-between items-center mb-1"><h4 className="font-bold text-foreground">{pkg.name}</h4><span className="font-bold text-primary text-xl">${pkg.price.toFixed(0)}</span></div>
+                    <p className="text-xs text-muted-foreground mb-3">{pkg.description}</p>
+                    <div className="flex gap-4 text-xs font-medium text-muted-foreground">
+                      <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {pkg.sessions} buổi</span>
+                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> 60 phút</span>
                     </div>
-                    <p className="text-muted-foreground text-sm mb-2">{pkg.description}</p>
-                    <div className="flex items-center gap-3 text-muted-foreground text-sm">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        <span>{pkg.sessions} sessions</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        <span>{pkg.duration}</span>
-                      </div>
-                    </div>
-                    {pkg.sessions > 1 && (
-                      <div className="mt-2 pt-2 border-t border-border">
-                        <span className="text-primary text-sm">${(pkg.price / pkg.sessions).toFixed(0)}/session</span>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
-
-              <Button onClick={onBooking} className="w-full h-12 bg-primary text-white">
-                Book Now - ${trainerData.packages.find(p => p.id === selectedPackage)?.price.toFixed(0)}
+              <Button onClick={handleBookingSubmit} disabled={isBooking} className="w-full h-14 text-lg font-bold shadow-lg">
+                {isBooking ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Đang xử lý...</> : `Đặt ngay ($${trainerData.packages.find((p: any) => p.id === selectedPackage)?.price.toFixed(0)})`}
               </Button>
-
-              <div className="mt-4 pt-4 border-t border-border">
-                <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                  <Shield className="w-4 h-4 text-primary" />
-                  <span>100% Money-back guarantee</span>
-                </div>
-              </div>
             </Card>
           </div>
         </div>

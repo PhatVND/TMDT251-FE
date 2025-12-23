@@ -1,136 +1,99 @@
-import { X, Star } from "lucide-react";
+import { X, Star, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { useState } from "react";
+import ptService from "../services/ptService";
 
 interface RatePTModalProps {
   isOpen: boolean;
   onClose: () => void;
+  trainerId: number; 
   trainerName: string;
   trainerImage: string;
-  onSubmit: (rating: number, comment: string) => void;
 }
 
-export function RatePTModal({ isOpen, onClose, trainerName, trainerImage, onSubmit }: RatePTModalProps) {
+export function RatePTModal({ isOpen, onClose, trainerId, trainerName, trainerImage }: RatePTModalProps) {
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [comment, setComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = () => {
-    if (rating > 0) {
-      onSubmit(rating, comment);
+  const handleSubmit = async () => {
+    if (rating === 0) {
+      alert("Vui lòng chọn số sao đánh giá!");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // FIX PAYLOAD: Ép kiểu Number để tránh lỗi 500
+      const payload = {
+        comment: comment || "Dịch vụ rất tốt", // Không để trống comment
+        rating: Number(rating),
+        traineeId: 1, // Thay bằng ID login thật nếu có
+        trainerId: Number(trainerId), // trainerId lấy từ props truyền xuống
+      };
+
+      console.log("Payload gửi đi:", payload); // Kiểm tra log này phải có 4 trường
+
+      await ptService.createReview(payload);
+
+      alert("Gửi đánh giá thành công!");
       setRating(0);
       setComment("");
       onClose();
+    } catch (error) {
+      console.error("Lỗi 500:", error);
+      alert("Lỗi máy chủ (500). Kiểm tra xem traineeId=1 đã tồn tại chưa!");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-lg rounded-[20px] border-border p-6 bg-white relative max-h-[90vh] overflow-y-auto">
-        {/* Close Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="absolute top-4 right-4"
-        >
-          <X className="w-5 h-5" />
-        </Button>
-
-        {/* Header */}
-        <div className="mb-6">
-          <h2 className="text-foreground mb-2">Rate & Review</h2>
-          <p className="text-muted-foreground text-sm">
-            Share your experience with {trainerName}
-          </p>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+      <Card className="w-full max-w-md p-8 bg-card border-border shadow-2xl relative">
+        <Button variant="ghost" size="icon" onClick={onClose} className="absolute top-4 right-4"><X /></Button>
+        
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold mb-2">Đánh giá huấn luyện viên</h2>
+          <p className="text-muted-foreground">{trainerName}</p>
         </div>
 
-        {/* Trainer Info */}
-        <div className="flex items-center gap-4 mb-6 p-4 bg-secondary rounded-[16px]">
-          <div className="w-16 h-16 rounded-full overflow-hidden bg-secondary">
-            <img src={trainerImage} alt={trainerName} className="w-full h-full object-cover" />
+        <div className="flex flex-col items-center gap-6">
+          {/* Avatar PT */}
+          <div className="w-20 h-20 rounded-full overflow-hidden">
+            <img src={trainerImage} alt="" className="w-full h-full object-cover" />
           </div>
-          <div>
-            <h3 className="text-foreground">{trainerName}</h3>
-            <p className="text-muted-foreground text-sm">Personal Trainer</p>
-          </div>
-        </div>
 
-        {/* Rating Stars */}
-        <div className="mb-6">
-          <label className="text-foreground text-sm mb-3 block">Your Rating</label>
+          {/* Star Rating */}
           <div className="flex gap-2">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <button
-                key={star}
-                onClick={() => setRating(star)}
-                onMouseEnter={() => setHoveredRating(star)}
+            {[1, 2, 3, 4, 5].map((s) => (
+              <Star
+                key={s}
+                onClick={() => setRating(s)}
+                onMouseEnter={() => setHoveredRating(s)}
                 onMouseLeave={() => setHoveredRating(0)}
-                className="transition-transform hover:scale-110"
-              >
-                <Star
-                  className={`w-10 h-10 ${
-                    star <= (hoveredRating || rating)
-                      ? "text-yellow-500 fill-yellow-500"
-                      : "text-gray-300"
-                  }`}
-                />
-              </button>
+                className={`w-10 h-10 cursor-pointer transition-colors ${
+                  s <= (hoveredRating || rating) ? "fill-yellow-500 text-yellow-500" : "text-gray-300"
+                }`}
+              />
             ))}
           </div>
-          {rating > 0 && (
-            <p className="text-sm text-muted-foreground mt-2">
-              {rating === 1 && "Poor"}
-              {rating === 2 && "Fair"}
-              {rating === 3 && "Good"}
-              {rating === 4 && "Very Good"}
-              {rating === 5 && "Excellent"}
-            </p>
-          )}
-        </div>
 
-        {/* Comment */}
-        <div className="mb-6">
-          <label className="text-foreground text-sm mb-3 block">
-            Your Review <span className="text-muted-foreground">(Optional)</span>
-          </label>
           <textarea
+            placeholder="Viết nhận xét..."
+            className="w-full h-32 p-4 rounded-xl border border-border bg-background"
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="Share your experience, training results, or what you liked most..."
-            className="w-full h-32 p-4 border border-border rounded-[12px] resize-none focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
-            maxLength={500}
           />
-          <p className="text-xs text-muted-foreground mt-2 text-right">
-            {comment.length}/500
-          </p>
-        </div>
 
-        {/* Actions */}
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="flex-1"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={rating === 0}
-            className="flex-1 bg-primary text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Submit Review
+          <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full py-6 font-bold">
+            {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : "Gửi đánh giá"}
           </Button>
         </div>
-
-        {/* Note */}
-        <p className="text-xs text-muted-foreground text-center mt-4">
-          Your review will be visible to other users
-        </p>
       </Card>
     </div>
   );

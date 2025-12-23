@@ -1,16 +1,22 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { 
-  Mail, Lock, Eye, EyeOff, User as UserIcon,
-  Briefcase, MapPin, Activity, Award, Dumbbell 
+import {
+  Activity, Award,
+  Briefcase,
+  Dumbbell,
+  Eye, EyeOff,
+  Lock,
+  Mail,
+  MapPin,
+  User as UserIcon
 } from "lucide-react";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import api from "../services/api";
+import { MascotFull } from "./MascotFull";
+import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { MascotFull } from "./MascotFull";
-import { Badge } from "./ui/badge";
-import api from "../services/api";
 
 // Form data
 const initialFormState = {
@@ -35,7 +41,7 @@ export function DesktopRegister() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const [selectedRole, setSelectedRole] = useState<'TRAINEE' | 'TRAINER' | 'BUSINESS'>('TRAINEE');
   const [formData, setFormData] = useState(initialFormState);
   const [error, setError] = useState("");
@@ -72,7 +78,7 @@ export function DesktopRegister() {
           weight: formData.weight || "",
           goal: formData.goal || ""
         };
-      } 
+      }
       else if (selectedRole === 'TRAINER') {
         endpoint = "/auth/register/trainer";
         payload = {
@@ -84,7 +90,7 @@ export function DesktopRegister() {
           experienceYear: formData.experienceYear || 0,
           bio: formData.bio || ""
         };
-      } 
+      }
       else if (selectedRole === 'BUSINESS') {
         endpoint = "/auth/register/business";
         payload = {
@@ -116,7 +122,7 @@ export function DesktopRegister() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-background flex items-center justify-center p-6">
       <div className="max-w-6xl w-full grid md:grid-cols-2 gap-8 items-center">
-        
+
         {/* --- LEFT SIDE: BRANDING --- */}
         <div className="hidden md:flex flex-col items-center justify-center text-center sticky top-10">
           <MascotFull className="w-96 h-96 mb-8" />
@@ -141,7 +147,7 @@ export function DesktopRegister() {
           </div>
 
           <form onSubmit={handleRegister} className="space-y-5">
-            
+
             {/* 1. ROLE SELECTION */}
             <div className="grid grid-cols-3 gap-2 p-1 bg-secondary/20 rounded-[20px]">
               {(['TRAINEE', 'TRAINER', 'BUSINESS'] as const).map((role) => (
@@ -149,11 +155,10 @@ export function DesktopRegister() {
                   key={role}
                   type="button"
                   onClick={() => setSelectedRole(role)}
-                  className={`py-2 text-sm font-medium rounded-[16px] transition-all ${
-                    selectedRole === role 
-                      ? 'bg-primary text-white shadow-md' 
+                  className={`py-2 text-sm font-medium rounded-[16px] transition-all ${selectedRole === role
+                      ? 'bg-primary text-white shadow-md'
                       : 'text-muted-foreground hover:bg-secondary/50'
-                  }`}
+                    }`}
                 >
                   {role === 'TRAINEE' ? 'Member' : role === 'TRAINER' ? 'Trainer' : 'Partner'}
                 </button>
@@ -167,11 +172,11 @@ export function DesktopRegister() {
                 <Label>{selectedRole === 'BUSINESS' ? 'Business Name' : 'Full Name'}</Label>
                 <div className="relative">
                   <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input 
+                  <Input
                     // Logic quan trọng: Nếu là Business thì lưu vào biến businessName, ngược lại là fullName
-                    name={selectedRole === 'BUSINESS' ? "businessName" : "fullName"} 
+                    name={selectedRole === 'BUSINESS' ? "businessName" : "fullName"}
                     placeholder={selectedRole === 'BUSINESS' ? "Gym Center Name" : "John Doe"}
-                    onChange={handleChange} required 
+                    onChange={handleChange} required
                     className="h-12 rounded-[20px] pl-10 border-border"
                   />
                 </div>
@@ -182,8 +187,8 @@ export function DesktopRegister() {
                 <Label>Email Address</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input 
-                    name="email" type="email" placeholder="email@fitconnect.com" onChange={handleChange} required 
+                  <Input
+                    name="email" type="email" placeholder="email@fitconnect.com" onChange={handleChange} required
                     className="h-12 rounded-[20px] pl-10 border-border"
                   />
                 </div>
@@ -194,8 +199,8 @@ export function DesktopRegister() {
                 <Label>Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input 
-                    name="password" type={showPassword ? "text" : "password"} placeholder="Create a password" onChange={handleChange} required 
+                  <Input
+                    name="password" type={showPassword ? "text" : "password"} placeholder="Create a password" onChange={handleChange} required
                     className="h-12 rounded-[20px] pl-10 pr-10 border-border"
                   />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
@@ -228,12 +233,12 @@ export function DesktopRegister() {
             </div>
 
             <div className="relative my-4">
-               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border"></div></div>
-               <div className="relative flex justify-center"><span className="bg-card px-4 text-xs text-muted-foreground uppercase">Role Specific Details</span></div>
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border"></div></div>
+              <div className="relative flex justify-center"><span className="bg-card px-4 text-xs text-muted-foreground uppercase">Role Specific Details</span></div>
             </div>
 
             {/* 3. DYNAMIC FIELDS (Giữ nguyên UI logic cũ) */}
-            
+
             {/* --- TRAINEE FIELDS --- */}
             {selectedRole === 'TRAINEE' && (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">

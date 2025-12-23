@@ -1,5 +1,15 @@
-import { MascotIcon } from "./MascotIcon";
+import logoImage from "./Images/logo-removebg-preview.png";
 
-export function MascotLogo({ className = "" }: { className?: string }) {
-  return <MascotIcon className={className} />;
+type MascotLogoProps = {
+  className?: string;
+};
+
+export function MascotLogo({ className = "" }: MascotLogoProps) {
+  return (
+    <img
+      src={logoImage}
+      alt="FitConnect Logo"
+      className={`object-contain ${className}`}
+    />
+  );
 }

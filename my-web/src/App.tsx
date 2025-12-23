@@ -49,6 +49,12 @@ const MainApp = () => {
 
   // State quản lý Logic nghiệp vụ
   const [selectedTrainerId, setSelectedTrainerId] = useState<number | null>(null);
+  const [bookingContext, setBookingContext] = useState<{
+    trainerId: number;
+    trainerName: string;
+    packageId: number;
+    price: number;
+  } | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [selectedGymId, setSelectedGymId] = useState<number | null>(null);
   const [selectedGymCenterId, setSelectedGymCenterId] = useState<number | null>(null);
@@ -56,28 +62,49 @@ const MainApp = () => {
   const [showQuickBooking, setShowQuickBooking] = useState(false);
   const [showAddGym, setShowAddGym] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
-  const [cartItems, setCartItems] = useState<any[]>([]);
-
-  let userType = "customer";
-  if (user?.role === "TRAINER") userType = "pt";
-  if (user?.role === "BUSINESS") userType = "agent";
-  if (user?.role === "ADMIN") userType = "admin";
-
-  // Logic Giỏ hàng
+  const [cartItems, setCartItems] = useState<any[]>([]);  // Calculate cart count
+  // Tính tổng số lượng để hiện trên Header
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+
+
+  // 2. Hàm thêm vào giỏ (Logic thông minh: Nếu có rồi thì tăng số lượng)
   const handleAddToCart = (product: any, quantity: number = 1, size: string = "M") => {
     setCartItems(prev => {
       const existingItem = prev.find(item => item.id === product.id);
       if (existingItem) {
-        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item);
+        return prev.map(item =>
+          item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item
+        );
       }
       return [...prev, { ...product, quantity, size }];
     });
     alert("Đã thêm vào giỏ hàng!");
   };
+
+  // Hàm sửa số lượng trong giỏ
   const handleUpdateCartQuantity = (id: any, newQty: number) => {
     if (newQty < 1) return;
     setCartItems(prev => prev.map(item => item.id === id ? { ...item, quantity: newQty } : item));
+  };
+
+  // Hàm xóa khỏi giỏ
+  const handleRemoveFromCart = (id: any) => {
+    setCartItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  // Handle login
+  const handleLogin = (type: UserType) => {
+    setIsLoggedIn(true);
+    setUserType(type);
+    // Set appropriate default screen based on user type
+    if (type === "agent") {
+      setCurrentScreen("agent-dashboard");
+    } else if (type === "pt") {
+      setCurrentScreen("pt-dashboard");
+    } else {
+      setCurrentScreen("featured-trainers");
+    }
   };
   const handleRemoveFromCart = (id: any) => setCartItems(prev => prev.filter(item => item.id !== id));
 
@@ -102,11 +129,27 @@ const MainApp = () => {
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
           <DesktopFeaturedTrainers
-            onTrainerClick={(id) => { setSelectedTrainerId(id); setCurrentScreen("profile"); }}
+            onTrainerClick={(trainerId) => {
+              setSelectedTrainerId(trainerId);
+              setCurrentScreen("profile");
+            }}
             onViewGyms={() => setCurrentScreen("gym-centers")}
             onShopProducts={() => setCurrentScreen("gym-stores")}
             onRefundPolicyClick={() => setCurrentScreen("refund-policy")}
-            onProductClick={(id) => { setSelectedProductId(String(id)); setCurrentScreen("product-detail"); }}
+            onProductClick={(productId) => {
+              // 1. Lưu ID sản phẩm vào state (ép kiểu sang string vì ProductDetail dùng string)
+              setSelectedProductId(String(productId));
+              // 2. Chuyển sang màn hình chi tiết
+              setCurrentScreen("product-detail");
+            }}
+          />
+          <DesktopQuickBooking
+            isOpen={showQuickBooking}
+            onClose={() => setShowQuickBooking(false)}
+            onSelectTrainer={(id) => {
+              setSelectedTrainerId(id);
+              setCurrentScreen("profile");
+            }}
           />
           <DesktopQuickBooking isOpen={showQuickBooking} onClose={() => setShowQuickBooking(false)} onSelectTrainer={(id) => { setSelectedTrainerId(id); setCurrentScreen("profile"); }} />
         </div>
@@ -156,7 +199,8 @@ const MainApp = () => {
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
           <BookingFlow
-            onBack={() => selectedGymCenterId ? setCurrentScreen("gym-center-detail") : setCurrentScreen("profile")}
+            bookingContext={bookingContext!}
+            onBack={() => setCurrentScreen("profile")}
           />
         </div>
       );
@@ -167,13 +211,21 @@ const MainApp = () => {
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
           <DesktopPTProfile
+            // THÊM DÒNG NÀY:
             trainerId={selectedTrainerId}
+
             onBack={() => {
-              if (selectedGymCenterId) setCurrentScreen("gym-center-detail");
-              else setCurrentScreen("featured-trainers");
+              if (selectedGymCenterId) {
+                setCurrentScreen("gym-center-detail");
+              } else {
+                setCurrentScreen("featured-trainers");
+              }
               setSelectedTrainerId(null);
             }}
-            onBooking={() => setCurrentScreen("booking")}
+            onBooking={(data) => {
+              setBookingContext(data);     // 🔥 LƯU DATA BOOKING
+              setCurrentScreen("booking"); // 🔥 CHUYỂN SANG CHỌN LỊCH
+            }}
           />
         </div>
       );
@@ -197,8 +249,15 @@ const MainApp = () => {
           <DesktopHeader {...headerProps} cartCount={cartCount} />
           <DesktopGymStoreDetail
             gymId={selectedGymId}
-            onBack={() => { setCurrentScreen("gym-stores"); setSelectedGymId(null); }}
-            onProductClick={(id) => { setSelectedProductId(id); setCurrentScreen("product-detail"); }}
+            onBack={() => {
+              setCurrentScreen("gym-stores");
+              setSelectedGymId(null);
+            }}
+            onProductClick={(productId) => {
+              setSelectedProductId(productId);
+              setCurrentScreen("product-detail");
+            }}
+            // 👇 ĐÃ SỬA: Dùng cartItems và handleAddToCart
             cartItems={cartItems}
             onAddToCart={handleAddToCart}
           />
@@ -226,8 +285,69 @@ const MainApp = () => {
           <DesktopHeader {...headerProps} cartCount={cartCount} />
           <DesktopProductDetail
             productId={selectedProductId}
-            onBack={() => selectedGymId ? setCurrentScreen("gym-store-detail") : setCurrentScreen("marketplace")}
-            onAddToCart={handleAddToCart}
+            onBack={() => {
+              if (selectedGymId) {
+                setCurrentScreen("gym-store-detail");
+              } else {
+                setCurrentScreen("marketplace");
+              }
+            }}
+            onAddToCart={(product, qty, size) => handleAddToCart(product, qty, size)} />
+        </div>
+      );
+    }
+
+    if (currentScreen === "cart") {
+      return (
+        <div>
+          <DesktopHeader {...headerProps} cartCount={cartCount} />
+          <DesktopCart
+            cartItems={cartItems} // Truyền mảng hàng thật
+            onBack={() => setCurrentScreen("gym-stores")}
+            onCheckout={() => { /* Logic sau khi thanh toán xong */ }}
+            onUpdateQuantity={handleUpdateCartQuantity}
+            onRemoveItem={handleRemoveFromCart}
+            onClearCart={() => setCartItems([])} // Xóa giỏ khi mua xong
+          />
+        </div>
+      );
+    }
+
+    if (currentScreen === "orders") {
+      return (
+        <div>
+          <DesktopHeader {...headerProps} cartCount={cartCount} />
+          <DesktopOrders onBack={() => setCurrentScreen("featured-trainers")} />
+        </div>
+      );
+    }
+
+    if (currentScreen === "about") {
+      return (
+        <div>
+          <DesktopHeader {...headerProps} cartCount={cartCount} />
+          <DesktopAbout onBack={() => setCurrentScreen("featured-trainers")} />
+        </div>
+      );
+    }
+
+    if (currentScreen === "refund-policy") {
+      return (
+        <div>
+          <DesktopHeader {...headerProps} cartCount={cartCount} />
+          <DesktopRefundPolicy onBack={() => setCurrentScreen("featured-trainers")} />
+        </div>
+      );
+    }
+
+    if (currentScreen === "user-profile") {
+      return (
+        <div>
+          <DesktopHeader {...headerProps} cartCount={cartCount} />
+          <DesktopUserProfile
+            onBack={() => setCurrentScreen("featured-trainers")}
+            userType="Customer"
+            onLogout={handleLogout}
           />
         </div>
       );
@@ -270,10 +390,40 @@ const MainApp = () => {
 
   // PT FLOW
   if (userType === "pt") {
-    if (currentScreen === "pt-bookings") return <DesktopPTBookings onBack={() => setCurrentScreen("pt-dashboard")} onMessageClient={() => setCurrentScreen("pt-messages")} />;
-    if (currentScreen === "pt-messages") return <DesktopPTMessages onBack={() => setCurrentScreen("pt-dashboard")} />;
-    if (currentScreen === "pt-gym-info") return <DesktopPTGymInfo onBack={() => setCurrentScreen("pt-dashboard")} />;
-    return <DesktopPTDashboardNew onViewBookings={() => setCurrentScreen("pt-bookings")} onViewMessages={() => setCurrentScreen("pt-messages")} onViewGym={() => setCurrentScreen("pt-gym-info")} />;
+    if (currentScreen === "pt-bookings") {
+      return (
+        <DesktopPTBookings
+          onBack={() => setCurrentScreen("pt-dashboard")}
+          onMessageClient={(clientName) => {
+            setCurrentScreen("pt-messages");
+          }}
+        />
+      );
+    }
+
+    if (currentScreen === "pt-messages") {
+      return (
+        <DesktopPTMessages
+          onBack={() => setCurrentScreen("pt-dashboard")}
+        />
+      );
+    }
+
+    if (currentScreen === "pt-gym-info") {
+      return (
+        <DesktopPTGymInfo
+          onBack={() => setCurrentScreen("pt-dashboard")}
+        />
+      );
+    }
+
+    return (
+      <DesktopPTDashboardNew
+        onViewBookings={() => setCurrentScreen("pt-bookings")}
+        onViewMessages={() => setCurrentScreen("pt-messages")}
+        onViewGym={() => setCurrentScreen("pt-gym-info")}
+      />
+    );
   }
 
   // AGENT FLOW
@@ -293,7 +443,7 @@ const MainApp = () => {
     }
     return (
       <div>
-        <DesktopHeader userType="Agent" onSwitchUser={logout} />
+        <DesktopHeader userType="Agent" onSwitchUser={() => setUserType(null)} />
         <DesktopAgentDashboard
           onAddGym={() => setShowAddGym(true)}
           onGymClick={(id) => { setSelectedAgentGymId(id); setCurrentScreen("agent-gym-detail"); }}
