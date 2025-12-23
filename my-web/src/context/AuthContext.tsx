@@ -1,60 +1,67 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
-import type { LoginResponse, User } from '../types/auth';
+
+interface User {
+  email: string;
+  role: 'TRAINEE' | 'TRAINER' | 'BUSINESS';
+}
 
 interface AuthContextType {
-  user: User | null;
-  login: (data: LoginResponse) => void;
-  logout: () => void;
   isAuthenticated: boolean;
+  user: User | null;
+  login: (token: string, user: User) => void;
+  logout: () => void;
   isLoading: boolean;
+  token: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Khi F5 trang, kiểm tra xem có lưu user trong localStorage không
+    const savedToken = localStorage.getItem('accessToken');
     const savedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('accessToken');
 
-    if (token && savedUser) {
+    if (savedToken && savedUser) {
       try {
-        setUser(JSON.parse(savedUser));
+        const userData = JSON.parse(savedUser);
+        setToken(savedToken);
+        setUser(userData);
       } catch (e) {
-        console.error("Lỗi parse user data", e);
-        localStorage.removeItem('user');
+        console.error('Failed to parse saved user data:', e);
         localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
       }
     }
     setIsLoading(false);
   }, []);
 
-  const login = (data: LoginResponse) => {
-    // 1. Lưu vào State
-    setUser(data.user);
-    // 2. Lưu vào LocalStorage để F5 không mất
-    localStorage.setItem('accessToken', data.accessToken);
-    localStorage.setItem('user', JSON.stringify(data.user));
+  const login = (newToken: string, userData: User) => {
+    setToken(newToken);
+    setUser(userData);
+    localStorage.setItem('accessToken', newToken);
+    localStorage.setItem('user', JSON.stringify(userData));
   };
 
   const logout = () => {
+    setToken(null);
     setUser(null);
     localStorage.removeItem('accessToken');
     localStorage.removeItem('user');
-    // Có thể thêm điều hướng về login ở đây hoặc xử lý ở App.tsx
     window.location.href = '/login';
   };
 
   return (
     <AuthContext.Provider value={{
+      token,
       user,
       login,
       logout,
-      isAuthenticated: !!user,
+      isAuthenticated: !!token && !!user,
       isLoading
     }}>
       {children}
@@ -62,7 +69,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Hook để các component khác gọi dùng
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth must be used within an AuthProvider');

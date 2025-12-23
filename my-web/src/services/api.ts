@@ -1,16 +1,10 @@
 const API_BASE_URL = "http://localhost:8080/api";
 
-interface ApiResponse<T> {
-  data?: T;
-  message?: string;
-  error?: string;
-}
-
-export const apiCall = async <T>(
+export const apiCall = async (
   method: 'GET' | 'POST' | 'PUT' | 'DELETE',
   endpoint: string,
   data?: Record<string, any>
-): Promise<T> => {
+): Promise<any> => {
   const url = `${API_BASE_URL}${endpoint}`;
   
   try {
@@ -26,13 +20,13 @@ export const apiCall = async <T>(
     }
 
     const response = await fetch(url, options);
-    const result: ApiResponse<T> = await response.json();
+    const result = await response.json();
 
     if (!response.ok) {
       throw new Error(result.message || `Request failed: ${response.status}`);
     }
 
-    return result.data as T;
+    return result;
   } catch (error) {
     console.error(`API Error [${method} ${endpoint}]:`, error);
     throw error;
@@ -40,12 +34,12 @@ export const apiCall = async <T>(
 };
 
 export default {
-  post: <T>(endpoint: string, data: Record<string, any>) =>
-    apiCall<T>('POST', endpoint, data),
-  get: <T>(endpoint: string) =>
-    apiCall<T>('GET', endpoint),
-  put: <T>(endpoint: string, data: Record<string, any>) =>
-    apiCall<T>('PUT', endpoint, data),
-  delete: <T>(endpoint: string) =>
-    apiCall<T>('DELETE', endpoint),
+  post: (endpoint: string, data: Record<string, any>) =>
+    apiCall('POST', endpoint, data),
+  get: (endpoint: string) =>
+    apiCall('GET', endpoint),
+  put: (endpoint: string, data: Record<string, any>) =>
+    apiCall('PUT', endpoint, data),
+  delete: (endpoint: string) =>
+    apiCall('DELETE', endpoint),
 };

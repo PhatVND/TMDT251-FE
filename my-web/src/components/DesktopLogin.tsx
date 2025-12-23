@@ -1,8 +1,8 @@
-import { Dumbbell, Eye, EyeOff, Home, Lock, Mail, Package, Shield } from "lucide-react";
+import { Dumbbell, Eye, EyeOff, Home, Lock, Mail, Package } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import type { LoginResponse } from "../types/auth";
+import api from "../services/api";
 import { MascotFull } from "./MascotFull";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -10,55 +10,12 @@ import { Card } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
-// --- MOCK DATABASE (COMMENTED OUT) ---
-// const MOCK_DB: Record<string, User & { password: string }> = {
-//   "customer@fitconnect.com": {
-//     id: 1,
-//     email: "customer@fitconnect.com",
-//     password: "customer123",
-//     fullName: "John Anderson",
-//     role: "TRAINEE",
-//     isTrainee: true, isTrainer: false, isBusinesses: false,
-//     gender: "MALE",
-//     phoneNumber: "0901234567"
-//   },
-//   "trainer@fitconnect.com": {
-//     id: 2,
-//     email: "trainer@fitconnect.com",
-//     password: "trainer123",
-//     fullName: "Marcus Steel",
-//     role: "TRAINER",
-//     isTrainee: false, isTrainer: true, isBusinesses: false,
-//     specialty: "Bodybuilding",
-//     experienceYear: 5,
-//     gender: "MALE"
-//   },
-//   "agent@fitconnect.com": {
-//     id: 3,
-//     email: "agent@fitconnect.com",
-//     password: "agent123",
-//     fullName: "Sarah Chen",
-//     role: "BUSINESS",
-//     isTrainee: false, isTrainer: false, isBusinesses: true,
-//     businessName: "California Fitness D1",
-//     taxCode: "TAX-001",
-//     address: "District 1, HCMC"
-//   },
-//   "admin@fitconnect.com": {
-//     id: 99,
-//     email: "admin@fitconnect.com",
-//     password: "admin123",
-//     fullName: "Alex Morgan",
-//     role: "ADMIN",
-//     isTrainee: false, isTrainer: false, isBusinesses: false
-//   },
-// };
 
 export function DesktopLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<"TRAINEE" | "TRAINER" | "BUSINESS" | "ADMIN" | null>(null);
+  const [selectedRole, setSelectedRole] = useState<"TRAINEE" | "TRAINER" | "BUSINESS" | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -66,11 +23,10 @@ export function DesktopLogin() {
   const navigate = useNavigate();
 
   const roleConfig = [
-    { type: "TRAINEE", email: "customer@fitconnect.com", icon: Home, color: "bg-blue-500", label: "Trainee" },
-    { type: "TRAINER", email: "trainer@fitconnect.com", icon: Dumbbell, color: "bg-primary", label: "Trainer" },
-    { type: "BUSINESS", email: "agent@fitconnect.com", icon: Package, color: "bg-green-500", label: "Business" },
-    { type: "ADMIN", email: "admin@fitconnect.com", icon: Shield, color: "bg-purple-500", label: "Admin" },
-  ] as const;
+    { type: "TRAINEE" as const, icon: Home, color: "bg-blue-500", label: "Member", description: "Find trainers & book sessions" },
+    { type: "TRAINER" as const, icon: Dumbbell, color: "bg-orange-500", label: "Trainer", description: "Manage bookings & sessions" },
+    { type: "BUSINESS" as const, icon: Package, color: "bg-green-500", label: "Business", description: "Manage gym & products" },
+  ];
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,51 +40,28 @@ export function DesktopLogin() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password, role: selectedRole })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData.message || "Login failed.");
-        return;
+      const payload = { username: email, password, role: selectedRole };
+      const response: any = await api.post("/auth/login", payload);
+      if (response && response.token) {
+        const userData = { email, role: selectedRole as 'TRAINEE' | 'TRAINER' | 'BUSINESS' };
+        login(response.token, userData);
+        navigate('/home');
+      } else {
+        setError("Invalid response from server.");
       }
-
-      const responseData: LoginResponse = await response.json();
-      login(responseData);
-      navigate('/');
-    } catch (err) {
-      setError("Connection error. Please try again.");
+    } catch (err: any) {
+      const errorMsg = err?.message || "Đăng nhập thất bại. Vui lòng kiểm tra thông tin.";
+      setError(errorMsg);
       console.error("Login error:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const selectRole = (role: "TRAINEE" | "TRAINER" | "BUSINESS" | "ADMIN", email: string) => {
+  const selectRole = (role: "TRAINEE" | "TRAINER" | "BUSINESS") => {
     setSelectedRole(role);
-    setEmail(email);
     setError("");
   };
-
-  // Demo accounts (các user thử nghiệm - COMMENTED OUT)
-  // const fillDemoCredentials = (demoEmail: string) => {
-  //   setEmail(demoEmail);
-  //   const user = MOCK_DB[demoEmail];
-  //   if (user) setPassword(user.password);
-  //   setError("");
-  // };
-  //
-  // const demoAccounts = [
-  //   { type: "customer", email: "customer@fitconnect.com", icon: Home, color: "bg-blue-500", label: "Trainee" },
-  //   { type: "pt", email: "trainer@fitconnect.com", icon: Dumbbell, color: "bg-primary", label: "Trainer" },
-  //   { type: "agent", email: "agent@fitconnect.com", icon: Package, color: "bg-green-500", label: "Business" },
-  //   { type: "admin", email: "admin@fitconnect.com", icon: Shield, color: "bg-purple-500", label: "Admin" },
-  // ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-background flex items-center justify-center p-6">
@@ -184,14 +117,14 @@ export function DesktopLogin() {
             </div>
 
             {error && (
-              <div className="bg-destructive/10 border border-destructive/20 text-destructive p-3 rounded-[20px]">
+              <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 p-4 rounded-[16px] text-sm font-medium">
                 {error}
               </div>
             )}
 
             {selectedRole && (
-              <div className="bg-primary/10 border border-primary/20 text-primary p-3 rounded-[20px]">
-                Role: <span className="font-semibold">{roleConfig.find(r => r.type === selectedRole)?.label}</span>
+              <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-200 p-4 rounded-[16px] text-sm">
+                ✓ Role selected: <span className="font-semibold">{roleConfig.find(r => r.type === selectedRole)?.label}</span>
               </div>
             )}
 
@@ -207,34 +140,36 @@ export function DesktopLogin() {
             </Link>
           </div>
 
-          <div className="relative my-6">
+          <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-border"></div>
             </div>
             <div className="relative flex justify-center">
-              <span className="bg-card px-4 text-muted-foreground">Select Role</span>
+              <span className="bg-card px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Choose Your Role</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-4">
             {roleConfig.map((role) => {
               const Icon = role.icon;
+              const isSelected = selectedRole === role.type;
               return (
                 <Button
                   key={role.type}
                   type="button"
                   variant="outline"
-                  className={`h-auto py-3 rounded-[20px] border-2 transition-all ${selectedRole === role.type
-                      ? "border-primary bg-primary/10"
-                      : "hover:border-primary hover:bg-primary/5"
+                  className={`h-auto py-5 px-4 rounded-[16px] border-2 transition-all flex flex-col items-center gap-3 min-h-32 ${isSelected
+                    ? "border-primary bg-primary/10 shadow-md"
+                    : "border-border hover:border-primary hover:bg-secondary/50"
                     }`}
-                  onClick={() => selectRole(role.type, role.email)}
+                  onClick={() => selectRole(role.type)}
                 >
-                  <div className="flex flex-col items-center gap-1">
-                    <div className={`w-8 h-8 ${role.color} rounded-full flex items-center justify-center`}>
-                      <Icon className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-xs capitalize">{role.label}</span>
+                  <div className={`w-12 h-12 ${role.color} rounded-full flex items-center justify-center shadow-md flex-shrink-0`}>
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-center break-words">
+                    <p className="text-sm font-bold text-foreground leading-snug">{role.label}</p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-tight whitespace-normal">{role.description}</p>
                   </div>
                 </Button>
               );

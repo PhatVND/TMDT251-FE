@@ -32,22 +32,22 @@ import { DesktopUIKit } from "./components/DesktopUIKit";
 import { DesktopUserProfile } from "./components/DesktopUserProfile";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
-// Định nghĩa lại Screen Type cho MainApp
 type Screen = "home" | "featured-trainers" | "gym-centers" | "gym-center-detail" | "profile" | "booking" | "gym-stores" | "gym-store-detail" | "marketplace" | "product-detail" | "cart" | "orders" | "about" | "user-profile" | "my-pt" | "agent-dashboard" | "agent-gym-detail" | "pt-dashboard" | "pt-bookings" | "pt-messages" | "pt-gym-info" | "refund-policy";
-
-// 1. COMPONENT BẢO VỆ ROUTE
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) return <div>Loading...</div>;
   return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
-// Component này chỉ render khi user ĐÃ LOGIN
 const MainApp = () => {
   const { user, logout } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<Screen>("featured-trainers");
 
-  // State quản lý Logic nghiệp vụ
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+  const userType = user.role === 'TRAINEE' ? 'customer' : user.role === 'TRAINER' ? 'pt' : user.role === 'BUSINESS' ? 'agent' : user.role === 'ADMIN' ? 'admin' : 'customer';
+
   const [selectedTrainerId, setSelectedTrainerId] = useState<number | null>(null);
   const [bookingContext, setBookingContext] = useState<{
     trainerId: number;
@@ -62,13 +62,9 @@ const MainApp = () => {
   const [showQuickBooking, setShowQuickBooking] = useState(false);
   const [showAddGym, setShowAddGym] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
-  const [cartItems, setCartItems] = useState<any[]>([]);  // Calculate cart count
-  // Tính tổng số lượng để hiện trên Header
+  const [cartItems, setCartItems] = useState<any[]>([]);
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-
-
-  // 2. Hàm thêm vào giỏ (Logic thông minh: Nếu có rồi thì tăng số lượng)
   const handleAddToCart = (product: any, quantity: number = 1, size: string = "M") => {
     setCartItems(prev => {
       const existingItem = prev.find(item => item.id === product.id);
@@ -82,31 +78,14 @@ const MainApp = () => {
     alert("Đã thêm vào giỏ hàng!");
   };
 
-  // Hàm sửa số lượng trong giỏ
   const handleUpdateCartQuantity = (id: any, newQty: number) => {
     if (newQty < 1) return;
     setCartItems(prev => prev.map(item => item.id === id ? { ...item, quantity: newQty } : item));
   };
 
-  // Hàm xóa khỏi giỏ
   const handleRemoveFromCart = (id: any) => {
     setCartItems(prev => prev.filter(item => item.id !== id));
   };
-
-  // Handle login
-  const handleLogin = (type: UserType) => {
-    setIsLoggedIn(true);
-    setUserType(type);
-    // Set appropriate default screen based on user type
-    if (type === "agent") {
-      setCurrentScreen("agent-dashboard");
-    } else if (type === "pt") {
-      setCurrentScreen("pt-dashboard");
-    } else {
-      setCurrentScreen("featured-trainers");
-    }
-  };
-  const handleRemoveFromCart = (id: any) => setCartItems(prev => prev.filter(item => item.id !== id));
 
   // CUSTOMER FLOW
   if (userType === "customer") {
@@ -137,9 +116,7 @@ const MainApp = () => {
             onShopProducts={() => setCurrentScreen("gym-stores")}
             onRefundPolicyClick={() => setCurrentScreen("refund-policy")}
             onProductClick={(productId) => {
-              // 1. Lưu ID sản phẩm vào state (ép kiểu sang string vì ProductDetail dùng string)
               setSelectedProductId(String(productId));
-              // 2. Chuyển sang màn hình chi tiết
               setCurrentScreen("product-detail");
             }}
           />
@@ -151,7 +128,6 @@ const MainApp = () => {
               setCurrentScreen("profile");
             }}
           />
-          <DesktopQuickBooking isOpen={showQuickBooking} onClose={() => setShowQuickBooking(false)} onSelectTrainer={(id) => { setSelectedTrainerId(id); setCurrentScreen("profile"); }} />
         </div>
       );
     }
@@ -211,7 +187,6 @@ const MainApp = () => {
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
           <DesktopPTProfile
-            // THÊM DÒNG NÀY:
             trainerId={selectedTrainerId}
 
             onBack={() => {
@@ -223,8 +198,8 @@ const MainApp = () => {
               setSelectedTrainerId(null);
             }}
             onBooking={(data) => {
-              setBookingContext(data);     // 🔥 LƯU DATA BOOKING
-              setCurrentScreen("booking"); // 🔥 CHUYỂN SANG CHỌN LỊCH
+              setBookingContext(data);
+              setCurrentScreen("booking");
             }}
           />
         </div>
@@ -257,7 +232,6 @@ const MainApp = () => {
               setSelectedProductId(productId);
               setCurrentScreen("product-detail");
             }}
-            // 👇 ĐÃ SỬA: Dùng cartItems và handleAddToCart
             cartItems={cartItems}
             onAddToCart={handleAddToCart}
           />
@@ -302,12 +276,12 @@ const MainApp = () => {
         <div>
           <DesktopHeader {...headerProps} cartCount={cartCount} />
           <DesktopCart
-            cartItems={cartItems} // Truyền mảng hàng thật
+            cartItems={cartItems}
             onBack={() => setCurrentScreen("gym-stores")}
             onCheckout={() => { /* Logic sau khi thanh toán xong */ }}
             onUpdateQuantity={handleUpdateCartQuantity}
             onRemoveItem={handleRemoveFromCart}
-            onClearCart={() => setCartItems([])} // Xóa giỏ khi mua xong
+            onClearCart={() => setCartItems([])}
           />
         </div>
       );
@@ -347,7 +321,7 @@ const MainApp = () => {
           <DesktopUserProfile
             onBack={() => setCurrentScreen("featured-trainers")}
             userType="Customer"
-            onLogout={handleLogout}
+            onLogout={logout}
           />
         </div>
       );
@@ -369,13 +343,11 @@ const MainApp = () => {
       );
     }
 
-    // Các màn hình phụ khác (Orders, About, Profile, RefundPolicy)
     if (currentScreen === "orders") return <div><DesktopHeader {...headerProps} cartCount={cartCount} /><DesktopOrders onBack={() => setCurrentScreen("featured-trainers")} /></div>;
     if (currentScreen === "about") return <div><DesktopHeader {...headerProps} cartCount={cartCount} /><DesktopAbout onBack={() => setCurrentScreen("featured-trainers")} /></div>;
     if (currentScreen === "refund-policy") return <div><DesktopHeader {...headerProps} cartCount={cartCount} /><DesktopRefundPolicy onBack={() => setCurrentScreen("featured-trainers")} /></div>;
     if (currentScreen === "user-profile") return <div><DesktopHeader {...headerProps} cartCount={cartCount} /><DesktopUserProfile onBack={() => setCurrentScreen("featured-trainers")} userType="Customer" onLogout={logout} /></div>;
 
-    // Default Customer Home
     return (
       <div>
         <DesktopHeader {...headerProps} cartCount={cartCount} />
@@ -443,7 +415,7 @@ const MainApp = () => {
     }
     return (
       <div>
-        <DesktopHeader userType="Agent" onSwitchUser={() => setUserType(null)} />
+        <DesktopHeader userType="Agent" onSwitchUser={logout} />
         <DesktopAgentDashboard
           onAddGym={() => setShowAddGym(true)}
           onGymClick={(id) => { setSelectedAgentGymId(id); setCurrentScreen("agent-gym-detail"); }}
@@ -466,11 +438,15 @@ const MainApp = () => {
   return <div>Unknown Role</div>;
 };
 
-// 3. ROOT COMPONENT
-// Wrapper cho Public Route (Nếu đã login thì không cho vào trang Login nữa)
 const PublicRoute = ({ children }: { children: JSX.Element }) => {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? <Navigate to="/" /> : children;
+};
+
+const RootRoute = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) return <div>Loading...</div>;
+  return isAuthenticated ? <Navigate to="/home" /> : <Navigate to="/login" />;
 };
 
 export default function App() {
@@ -478,17 +454,14 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route path="/" element={<Navigate to="/login" />} />
+          <Route path="/" element={<RootRoute />} />
           <Route path="/login" element={<PublicRoute><DesktopLogin /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><DesktopRegister /></PublicRoute>} />
           <Route path="/ui-kit" element={<DesktopUIKit onBack={() => window.location.href = '/login'} />} />
 
           {/* Mọi route khác đều vào MainApp và được bảo vệ */}
-          <Route path="/*" element={
-            <PrivateRoute>
-              <MainApp />
-            </PrivateRoute>
-          } />
+          <Route path="/home" element={<PrivateRoute><MainApp /></PrivateRoute>} />
+          <Route path="/*" element={<RootRoute />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

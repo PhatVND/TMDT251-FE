@@ -156,11 +156,11 @@ export function DesktopRegister() {
                   type="button"
                   onClick={() => setSelectedRole(role)}
                   className={`py-2 text-sm font-medium rounded-[16px] transition-all ${selectedRole === role
-                      ? 'bg-primary text-white shadow-md'
-                      : 'text-muted-foreground hover:bg-secondary/50'
+                    ? 'bg-primary text-white shadow-md'
+                    : 'text-muted-foreground hover:bg-secondary/50'
                     }`}
                 >
-                  {role === 'TRAINEE' ? 'Member' : role === 'TRAINER' ? 'Trainer' : 'Partner'}
+                  {role === 'TRAINEE' ? 'Member' : role === 'TRAINER' ? 'Trainer' : 'Business'}
                 </button>
               ))}
             </div>
