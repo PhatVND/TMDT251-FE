@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { 
-  Mail, Lock, Eye, EyeOff, User as UserIcon, Phone, Calendar, 
-  Briefcase, MapPin, Activity, Award, Building 
+  Mail, Lock, Eye, EyeOff, User as UserIcon,
+  Briefcase, MapPin, Activity, Award, Dumbbell 
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
@@ -10,21 +10,25 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { MascotFull } from "./MascotFull";
 import { Badge } from "./ui/badge";
-import type { User } from "../types/auth"; // Kết nối Type
+import api from "../services/api";
 
-// State khởi tạo cho form
-const initialFormState: Partial<User> = {
+// Form data
+const initialFormState = {
   email: '',
   password: '',
   fullName: '',
-  phoneNumber: '',
+  businessName: '',
   dateOfBirth: '',
   gender: 'MALE',
-  role: 'TRAINEE',
-  // Các trường riêng
-  goal: '', height: '', weight: '',
-  certificate: '', bio: '', specialty: '', experienceYear: 0,
-  address: '', taxCode: '', businessName: ''
+  height: '',
+  weight: '',
+  goal: '',
+  specialty: '',
+  experienceYear: 0,
+  bio: '',
+  certificate: '',
+  taxCode: '',
+  address: ''
 };
 
 export function DesktopRegister() {
@@ -32,9 +36,9 @@ export function DesktopRegister() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
-  // State quản lý Role và Data
   const [selectedRole, setSelectedRole] = useState<'TRAINEE' | 'TRAINER' | 'BUSINESS'>('TRAINEE');
-  const [formData, setFormData] = useState<Partial<User>>(initialFormState);
+  const [formData, setFormData] = useState(initialFormState);
+  const [error, setError] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -44,33 +48,76 @@ export function DesktopRegister() {
     }));
   };
 
+  // --- LOGIC GỌI API BACKEND ---
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
 
-    // 1. Chuẩn hóa dữ liệu theo Java Entity
-    const payload = {
-      ...formData,
-      role: selectedRole,
-      isTrainee: selectedRole === 'TRAINEE',
-      isTrainer: selectedRole === 'TRAINER',
-      isBusinesses: selectedRole === 'BUSINESS',
-    };
+    try {
+      let endpoint = "";
+      let payload = {};
 
-    // 2. Giả lập gọi API
-    setTimeout(() => {
-      console.log(">>> Registered Payload:", payload);
+      // 1. Phân loại Endpoint và Payload dựa trên Role
+      // Backend của bạn chia ra 3 controller riêng biệt
+      if (selectedRole === 'TRAINEE') {
+        endpoint = "/auth/register/trainee";
+        payload = {
+          email: formData.email,
+          password: formData.password,
+          fullName: formData.fullName,
+          dateOfBirth: formData.dateOfBirth || "",
+          gender: formData.gender,
+          height: formData.height || "",
+          weight: formData.weight || "",
+          goal: formData.goal || ""
+        };
+      } 
+      else if (selectedRole === 'TRAINER') {
+        endpoint = "/auth/register/trainer";
+        payload = {
+          email: formData.email,
+          password: formData.password,
+          fullName: formData.fullName,
+          certificate: formData.certificate || "",
+          specialty: formData.specialty,
+          experienceYear: formData.experienceYear || 0,
+          bio: formData.bio || ""
+        };
+      } 
+      else if (selectedRole === 'BUSINESS') {
+        endpoint = "/auth/register/business";
+        payload = {
+          email: formData.email,
+          password: formData.password,
+          businessName: formData.businessName,
+          taxCode: formData.taxCode,
+          address: formData.address
+        };
+      }
+
+      // 2. Gọi API thật
+      console.log(`Calling API: POST ${endpoint}`, payload);
+      await api.post(endpoint, payload);
+
+      // 3. Xử lý thành công
       alert(`Đăng ký thành công tài khoản ${selectedRole}! Vui lòng đăng nhập.`);
       navigate('/login');
+
+    } catch (err: any) {
+      console.error("Register Error:", err);
+      const errorMsg = err instanceof Error ? err.message : "Đăng ký thất bại. Vui lòng thử lại.";
+      setError(errorMsg);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-background flex items-center justify-center p-6">
       <div className="max-w-6xl w-full grid md:grid-cols-2 gap-8 items-center">
         
-        {/* --- LEFT SIDE: BRANDING (Giống Login) --- */}
+        {/* --- LEFT SIDE: BRANDING --- */}
         <div className="hidden md:flex flex-col items-center justify-center text-center sticky top-10">
           <MascotFull className="w-96 h-96 mb-8" />
           <h1 className="text-foreground mb-3">Join FitConnect Today</h1>
@@ -89,6 +136,8 @@ export function DesktopRegister() {
           <div className="mb-6">
             <h2 className="text-foreground mb-2">Create Account</h2>
             <p className="text-muted-foreground">Fill in your details to get started</p>
+            {/* Hiển thị lỗi nếu có */}
+            {error && <p className="text-red-500 text-sm mt-2 bg-red-50 p-2 rounded">{error}</p>}
           </div>
 
           <form onSubmit={handleRegister} className="space-y-5">
@@ -113,12 +162,13 @@ export function DesktopRegister() {
 
             {/* 2. COMMON FIELDS */}
             <div className="space-y-4">
-              {/* Full Name */}
+              {/* Full Name / Business Name */}
               <div className="space-y-2">
-                <Label>Full Name / Business Name</Label>
+                <Label>{selectedRole === 'BUSINESS' ? 'Business Name' : 'Full Name'}</Label>
                 <div className="relative">
                   <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input 
+                    // Logic quan trọng: Nếu là Business thì lưu vào biến businessName, ngược lại là fullName
                     name={selectedRole === 'BUSINESS' ? "businessName" : "fullName"} 
                     placeholder={selectedRole === 'BUSINESS' ? "Gym Center Name" : "John Doe"}
                     onChange={handleChange} required 
@@ -154,15 +204,15 @@ export function DesktopRegister() {
                 </div>
               </div>
 
-              {/* Phone & Gender Row */}
+              {/* Date of Birth & Gender Row */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Phone</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input name="phoneNumber" placeholder="090..." onChange={handleChange} className="h-12 rounded-[20px] pl-10 border-border" />
+                {selectedRole !== 'BUSINESS' && (
+                  <div className="space-y-2">
+                    <Label>Date of Birth</Label>
+                    <Input name="dateOfBirth" type="date" onChange={handleChange} className="h-12 rounded-[20px] border-border" />
                   </div>
-                </div>
+                )}
+                {/* Gender - Ẩn nếu là Business */}
                 {selectedRole !== 'BUSINESS' && (
                   <div className="space-y-2">
                     <Label>Gender</Label>
@@ -182,7 +232,7 @@ export function DesktopRegister() {
                <div className="relative flex justify-center"><span className="bg-card px-4 text-xs text-muted-foreground uppercase">Role Specific Details</span></div>
             </div>
 
-            {/* 3. DYNAMIC FIELDS */}
+            {/* 3. DYNAMIC FIELDS (Giữ nguyên UI logic cũ) */}
             
             {/* --- TRAINEE FIELDS --- */}
             {selectedRole === 'TRAINEE' && (
@@ -226,12 +276,7 @@ export function DesktopRegister() {
                 </div>
                 <div className="space-y-2">
                   <Label>Bio / Intro</Label>
-                  <textarea 
-                    name="bio" 
-                    placeholder="Brief introduction about yourself..." 
-                    onChange={handleChange}
-                    className="w-full min-h-[80px] rounded-[20px] p-4 border border-border bg-background"
-                  />
+                  <textarea name="bio" placeholder="Brief introduction about yourself..." onChange={handleChange} className="w-full min-h-[80px] rounded-[20px] p-4 border border-border bg-background" />
                 </div>
               </div>
             )}
@@ -261,7 +306,6 @@ export function DesktopRegister() {
             </Button>
           </form>
 
-          {/* Footer Link */}
           <div className="mt-6 text-center">
             <p className="text-muted-foreground text-sm">
               Already have an account?{" "}
