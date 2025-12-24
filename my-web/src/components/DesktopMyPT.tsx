@@ -111,39 +111,50 @@ export function DesktopMyPT({ onBack, onTrainerSelect, onBookSession }: DesktopM
         const trainerMap = new Map<number, { info: UserAPI, bookings: BookingAPI[] }>();
         
         bookings.forEach((b: any) => {
-          const trainerInfo = b.trainer; 
-          if (trainerInfo && trainerInfo.id) {
-            if (!trainerMap.has(trainerInfo.id)) {
-              trainerMap.set(trainerInfo.id, { info: trainerInfo, bookings: [] });
-            }
-            trainerMap.get(trainerInfo.id)?.bookings.push(b);
+          const trainerInfo = b.bookingPackage?.trainer_id;
+          if (!trainerInfo?.id) return;
+
+          if (!trainerMap.has(trainerInfo.id)) {
+            trainerMap.set(trainerInfo.id, {
+              info: trainerInfo,
+              bookings: []
+            });
           }
+
+          trainerMap.get(trainerInfo.id)!.bookings.push(b);
+
         });
 
         // 3. Biến đổi dữ liệu Map sang mảng UI
-        const trainersList = Array.from(trainerMap.values()).map(({ info, bookings: tBookings }) => {
-          // Sắp xếp booking mới nhất lên đầu
-          const sorted = [...tBookings].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          
-          // Lấy lịch tương lai hoặc PENDING gần nhất
-          const nextB = sorted.find(b => b.status === "PENDING" || b.status === "CONFIRMED");
-
-          return {
-            id: info.id,
-            name: info.fullName || "Huấn luyện viên",
-            specialty: info.specialty || "Huấn luyện viên cá nhân",
-            location: info.address || "Việt Nam",
-            image: `https://ui-avatars.com/api/?name=${encodeURIComponent(info.fullName || "PT")}&background=random&size=200`,
-            rating: 5.0,
-            reviews: 0,
-            isFavorite: false,
-            sessionsCompleted: tBookings.filter(b => b.status === "COMPLETED").length,
-            nextSession: nextB ? formatNextSession(nextB.date) : "Chưa có lịch",
-            statusNext: nextB ? nextB.status : "",
-            lastBooked: formatTimeAgo(sorted[0].date),
-            rawNextSessionDate: nextB ? new Date(nextB.date) : undefined
-          };
-        });
+        const trainersList = Array.from(trainerMap.values()).map(
+          ({ info, bookings: tBookings }) => {
+        
+            const sorted = [...tBookings].sort(
+              (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+        
+            const nextB = sorted.find(
+              b => b.status === "PENDING" || b.status === "CONFIRMED"
+            );
+        
+            return {
+              id: info.id,
+              name: info.fullName,
+              specialty: info.specialty ?? "Huấn luyện viên cá nhân",
+              location: info.address ?? "Việt Nam",
+              image: `https://ui-avatars.com/api/?name=${encodeURIComponent(info.fullName)}&background=random&size=200`,
+              rating: 5,
+              reviews: 0,
+              isFavorite: false,
+              sessionsCompleted: tBookings.filter(b => b.status === "COMPLETED").length,
+              nextSession: nextB ? formatNextSession(nextB.date) : "Chưa có lịch",
+              statusNext: nextB?.status ?? "",
+              lastBooked: formatTimeAgo(sorted[0].date),
+              rawNextSessionDate: nextB ? new Date(nextB.date) : undefined
+            };
+          }
+        );
+        
 
         // 4. Sắp xếp PT: Ai có lịch gần nhất thì lên đầu
         const finalSorted = trainersList.sort((a, b) => 

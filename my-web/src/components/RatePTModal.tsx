@@ -39,6 +39,8 @@ export function RatePTModal({ isOpen, onClose, trainerId, trainerName, trainerIm
   const [hoveredRating, setHoveredRating] = useState(0);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+
 
   if (!isOpen) return null;
 
@@ -68,10 +70,15 @@ export function RatePTModal({ isOpen, onClose, trainerId, trainerName, trainerIm
 
       await ptService.createReview(payload);
 
-      alert("Gửi đánh giá thành công!");
+      setSuccess(true);        // hiện thông báo thành công
       setRating(0);
       setComment("");
-      onClose();
+
+      setTimeout(() => {
+        setSuccess(false);
+        onClose();             // đóng modal sau 1.2s
+      }, 1200);
+
     } catch (error) {
       console.error("Lỗi gửi đánh giá:", error);
       alert("Gửi đánh giá thất bại. Vui lòng thử lại.");
@@ -118,7 +125,31 @@ export function RatePTModal({ isOpen, onClose, trainerId, trainerName, trainerIm
             onChange={(e) => setComment(e.target.value)}
           />
 
-          <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full py-6 font-bold">
+          {success && (
+            <div className="w-full flex items-center gap-2 rounded-lg bg-green-500/10 px-4 py-3 text-green-600 text-sm animate-in fade-in">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              Gửi đánh giá thành công!
+            </div>
+          )}
+
+
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting || success}
+            className="w-full py-6 font-bold"
+          >
             {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : "Gửi đánh giá"}
           </Button>
         </div>

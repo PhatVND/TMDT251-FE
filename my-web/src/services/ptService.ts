@@ -23,13 +23,19 @@ export interface BookingAPI {
   date: string;
   status: string;
   totalAmount: number;
-  trainee: any;
-  trainer: UserAPI;
+  trainee: UserAPI;
+  bookingPackage: {
+    id: number;
+    name: string;
+    price: number;
+    trainer: UserAPI;
+  };
 }
+
 
 export interface CreateBookingRequest {
   traineeId: number;
-  trainerId: number;
+  packageId: number;
   date: string;
   totalAmount: number;
 }

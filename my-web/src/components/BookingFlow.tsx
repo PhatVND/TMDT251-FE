@@ -86,7 +86,7 @@ export function BookingFlow({ onBack, bookingContext }: BookingFlowProps) {
     try {
       await bookingService.createBooking({
         traineeId: traineeIdFromToken,
-        trainerId: trainerId,
+        packageId: trainerId,
         date: buildBookingDateISO(),
         totalAmount: price
       });
