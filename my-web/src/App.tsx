@@ -94,7 +94,11 @@ const MainApp = () => {
       onSwitchUser: logout,
       onNavigateHome: () => setCurrentScreen("featured-trainers"),
       onNavigateTrainers: () => setCurrentScreen("featured-trainers"),
-      onNavigateMarketplace: () => setCurrentScreen("gym-stores"),
+onNavigateMarketplace: () => {
+    setCurrentScreen("marketplace"); // Chuyển từ "gym-stores" sang "marketplace"
+    setSelectedProductId(null);    // Đảm bảo không bị kẹt ở trang chi tiết
+    setSelectedGymId(null);         // Đảm bảo reset ID cửa hàng
+  },
       onNavigateCart: () => setCurrentScreen("cart"),
       onNavigateOrders: () => setCurrentScreen("orders"),
       onNavigateAbout: () => setCurrentScreen("about"),
