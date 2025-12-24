@@ -3,6 +3,27 @@ import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { useState } from "react";
 import ptService from "../services/ptService";
+import { useAuth } from "../context/AuthContext";
+
+// Helper function để decode JWT và lấy userId
+const getUserIdFromToken = (token: string | null): number | null => {
+  if (!token) return null;
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const decoded = JSON.parse(jsonPayload);
+    return decoded.userId || null;
+  } catch (error) {
+    console.error("Lỗi decode JWT:", error);
+    return null;
+  }
+};
 
 interface RatePTModalProps {
   isOpen: boolean;
@@ -13,6 +34,7 @@ interface RatePTModalProps {
 }
 
 export function RatePTModal({ isOpen, onClose, trainerId, trainerName, trainerImage }: RatePTModalProps) {
+  const { token } = useAuth();
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -26,13 +48,19 @@ export function RatePTModal({ isOpen, onClose, trainerId, trainerName, trainerIm
       return;
     }
 
+    // Lấy traineeId từ JWT token
+    const traineeIdFromToken = getUserIdFromToken(token);
+    if (!traineeIdFromToken) {
+      alert("Không thể xác thực người dùng. Vui lòng đăng nhập lại.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // FIX PAYLOAD: Ép kiểu Number để tránh lỗi 500
       const payload = {
         comment: comment || "Dịch vụ rất tốt", // Không để trống comment
         rating: Number(rating),
-        traineeId: 1, // Thay bằng ID login thật nếu có
+        traineeId: traineeIdFromToken,
         trainerId: Number(trainerId), // trainerId lấy từ props truyền xuống
       };
 
@@ -45,8 +73,8 @@ export function RatePTModal({ isOpen, onClose, trainerId, trainerName, trainerIm
       setComment("");
       onClose();
     } catch (error) {
-      console.error("Lỗi 500:", error);
-      alert("Lỗi máy chủ (500). Kiểm tra xem traineeId=1 đã tồn tại chưa!");
+      console.error("Lỗi gửi đánh giá:", error);
+      alert("Gửi đánh giá thất bại. Vui lòng thử lại.");
     } finally {
       setIsSubmitting(false);
     }

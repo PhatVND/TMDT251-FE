@@ -5,6 +5,27 @@ import { Card } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { bookingService } from "../services/ptService";
+import { useAuth } from "../context/AuthContext";
+
+// Helper function để decode JWT và lấy userId
+const getUserIdFromToken = (token: string | null): number | null => {
+  if (!token) return null;
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const decoded = JSON.parse(jsonPayload);
+    return decoded.userId || null;
+  } catch (error) {
+    console.error("Lỗi decode JWT:", error);
+    return null;
+  }
+};
 
 const timeSlots = [
   { label: "6:00 AM", value: "06:00" },
@@ -37,6 +58,7 @@ interface BookingFlowProps {
 
 
 export function BookingFlow({ onBack, bookingContext }: BookingFlowProps) {
+  const { token } = useAuth();
   const { trainerId, trainerName, price } = bookingContext;
   const [selectedDate, setSelectedDate] = useState(
     dates.find(d => d.available)?.date || ""
@@ -53,11 +75,19 @@ export function BookingFlow({ onBack, bookingContext }: BookingFlowProps) {
       alert("Vui lòng chọn ngày và giờ");
       return;
     }
+
+    // Lấy traineeId từ JWT token
+    const traineeIdFromToken = getUserIdFromToken(token);
+    if (!traineeIdFromToken) {
+      alert("Không thể xác thực người dùng. Vui lòng đăng nhập lại.");
+      return;
+    }
+
     try {
       await bookingService.createBooking({
-        traineeId: 1,              // TODO: lấy từ auth
-        trainerId: trainerId,      // từ bookingContext
-        date: buildBookingDateISO(),  // ⭐ Date object
+        traineeId: traineeIdFromToken,
+        trainerId: trainerId,
+        date: buildBookingDateISO(),
         totalAmount: price
       });
 

@@ -6,9 +6,30 @@ import { Badge } from "./ui/badge";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { RatePTModal } from "./RatePTModal";
 import { ChatWithPTModal } from "./ChatWithPTModal";
+import { useAuth } from "../context/AuthContext";
 
 // Import Service và Interface
 import ptService, { type BookingAPI, type UserAPI } from "../services/ptService";
+
+// Helper function để decode JWT và lấy userId
+const getUserIdFromToken = (token: string | null): number | null => {
+  if (!token) return null;
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const decoded = JSON.parse(jsonPayload);
+    return decoded.userId || null;
+  } catch (error) {
+    console.error("Lỗi decode JWT:", error);
+    return null;
+  }
+};
 
 interface DesktopMyPTProps {
   onBack: () => void;
@@ -33,6 +54,7 @@ interface MyTrainerUI {
 }
 
 export function DesktopMyPT({ onBack, onTrainerSelect, onBookSession }: DesktopMyPTProps) {
+  const { token } = useAuth();
   const [rateModalOpen, setRateModalOpen] = useState(false);
   const [chatModalOpen, setChatModalOpen] = useState(false);
   const [selectedTrainer, setSelectedTrainer] = useState<any>(null);
@@ -66,9 +88,18 @@ export function DesktopMyPT({ onBack, onTrainerSelect, onBookSession }: DesktopM
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // 1. Gọi API lấy toàn bộ booking
-        const bookings = await ptService.getMyBookings(); 
-        console.log("Dữ liệu nhận được từ API /bookings:", bookings);
+        // 1. Lấy traineeId từ JWT token
+        const traineeId = getUserIdFromToken(token);
+        if (!traineeId) {
+          console.error("Không thể lấy traineeId từ token");
+          setMyTrainers([]);
+          setStats({ totalSessions: 0, upcomingSessions: 0, favoritePTs: 0, hoursTrained: 0 });
+          return;
+        }
+
+        // 2. Gọi API lấy bookings theo traineeId
+        const bookings = await ptService.getMyBookings(traineeId); 
+        console.log("Dữ liệu nhận được từ API /bookings/{traineeId}:", bookings);
 
         if (!bookings || bookings.length === 0) {
           setMyTrainers([]);
@@ -136,7 +167,7 @@ export function DesktopMyPT({ onBack, onTrainerSelect, onBookSession }: DesktopM
       }
     };
     fetchData();
-  }, []);
+  }, [token]);
 
   return (
     <div className="min-h-screen bg-background p-8">
