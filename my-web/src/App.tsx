@@ -431,9 +431,29 @@ onNavigateMarketplace: () => {
 
   // ADMIN FLOW
   if (userType === "admin") {
+    const adminHeaderProps = {
+      userType: "Admin",
+      onSwitchUser: logout,
+      onNavigateProfile: () => setCurrentScreen("user-profile"),
+      onNavigateHome: () => setCurrentScreen("featured-trainers"),
+    };
+
+    if (currentScreen === "user-profile") {
+      return (
+        <div>
+          <DesktopHeader {...adminHeaderProps} />
+          <DesktopUserProfile
+            onBack={() => setCurrentScreen("featured-trainers")}
+            userType="Admin"
+            onLogout={logout}
+          />
+        </div>
+      );
+    }
+
     return (
       <div>
-        <DesktopHeader userType="Admin" onSwitchUser={logout} />
+        <DesktopHeader {...adminHeaderProps} />
         <DesktopAdminDashboard />
       </div>
     );

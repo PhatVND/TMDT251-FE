@@ -7,16 +7,14 @@ const axiosClient = axios.create({
   },
 });
 
-// 👇 API PUBLIC (KHÔNG GỬI TOKEN)
 const PUBLIC_ENDPOINTS = [
   '/users/trainers',
   '/products',
 ];
 
 axiosClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
+  const token = localStorage.getItem('accessToken') || localStorage.getItem('access_token');
 
-  // url có thể là full URL → normalize
   const requestUrl = config.url || '';
 
   const isPublic = PUBLIC_ENDPOINTS.some((endpoint) =>
@@ -26,11 +24,24 @@ axiosClient.interceptors.request.use((config) => {
   if (token && !isPublic) {
     config.headers.Authorization = `Bearer ${token}`;
   } else {
-    // 🚫 QUAN TRỌNG: XÓA HẲN HEADER
     delete config.headers.Authorization;
   }
 
   return config;
 });
+
+axiosClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      console.error('API Error:', error.response.status, error.response.data);
+    } else if (error.request) {
+      console.error('Network Error:', error.request);
+    } else {
+      console.error('Error:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default axiosClient;

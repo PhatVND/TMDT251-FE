@@ -12,13 +12,13 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { MascotFull } from "./MascotFull";
+import { MascotLogo } from "./MascotLogo";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
-// Form data
 const initialFormState = {
   email: '',
   password: '',
@@ -54,7 +54,6 @@ export function DesktopRegister() {
     }));
   };
 
-  // --- LOGIC GỌI API BACKEND ---
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -64,8 +63,6 @@ export function DesktopRegister() {
       let endpoint = "";
       let payload = {};
 
-      // 1. Phân loại Endpoint và Payload dựa trên Role
-      // Backend của bạn chia ra 3 controller riêng biệt
       if (selectedRole === 'TRAINEE') {
         endpoint = "/auth/register/trainee";
         payload = {
@@ -102,17 +99,15 @@ export function DesktopRegister() {
         };
       }
 
-      // 2. Gọi API thật
       console.log(`Calling API: POST ${endpoint}`, payload);
       await api.post(endpoint, payload);
 
-      // 3. Xử lý thành công
-      alert(`Đăng ký thành công tài khoản ${selectedRole}! Vui lòng đăng nhập.`);
+      alert(`Successfully registered as ${selectedRole}! Please sign in.`);
       navigate('/login');
 
     } catch (err: any) {
       console.error("Register Error:", err);
-      const errorMsg = err instanceof Error ? err.message : "Đăng ký thất bại. Vui lòng thử lại.";
+      const errorMsg = err instanceof Error ? err.message : "Registration failed. Please try again.";
       setError(errorMsg);
     } finally {
       setIsLoading(false);
@@ -123,7 +118,6 @@ export function DesktopRegister() {
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-background flex items-center justify-center p-6">
       <div className="max-w-6xl w-full grid md:grid-cols-2 gap-8 items-center">
 
-        {/* --- LEFT SIDE: BRANDING --- */}
         <div className="hidden md:flex flex-col items-center justify-center text-center sticky top-10">
           <MascotFull className="w-96 h-96 mb-8" />
           <h1 className="text-foreground mb-3">Join FitConnect Today</h1>
@@ -137,18 +131,16 @@ export function DesktopRegister() {
           </div>
         </div>
 
-        {/* --- RIGHT SIDE: REGISTER FORM --- */}
         <Card className="rounded-[20px] border-border p-8 bg-card shadow-lg max-h-[90vh] overflow-y-auto custom-scrollbar">
-          <div className="mb-6">
+          <div className="mb-6 flex flex-col items-center">
+            <MascotLogo className="w-20 h-20 mb-4" />
             <h2 className="text-foreground mb-2">Create Account</h2>
             <p className="text-muted-foreground">Fill in your details to get started</p>
-            {/* Hiển thị lỗi nếu có */}
             {error && <p className="text-red-500 text-sm mt-2 bg-red-50 p-2 rounded">{error}</p>}
           </div>
 
           <form onSubmit={handleRegister} className="space-y-5">
 
-            {/* 1. ROLE SELECTION */}
             <div className="grid grid-cols-3 gap-2 p-1 bg-secondary/20 rounded-[20px]">
               {(['TRAINEE', 'TRAINER', 'BUSINESS'] as const).map((role) => (
                 <button
@@ -160,20 +152,17 @@ export function DesktopRegister() {
                     : 'text-muted-foreground hover:bg-secondary/50'
                     }`}
                 >
-                  {role === 'TRAINEE' ? 'Member' : role === 'TRAINER' ? 'Trainer' : 'Business'}
+                  {role === 'TRAINEE' ? 'Trainee' : role === 'TRAINER' ? 'Trainer' : 'Business'}
                 </button>
               ))}
             </div>
 
-            {/* 2. COMMON FIELDS */}
             <div className="space-y-4">
-              {/* Full Name / Business Name */}
               <div className="space-y-2">
                 <Label>{selectedRole === 'BUSINESS' ? 'Business Name' : 'Full Name'}</Label>
                 <div className="relative">
                   <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
-                    // Logic quan trọng: Nếu là Business thì lưu vào biến businessName, ngược lại là fullName
                     name={selectedRole === 'BUSINESS' ? "businessName" : "fullName"}
                     placeholder={selectedRole === 'BUSINESS' ? "Gym Center Name" : "John Doe"}
                     onChange={handleChange} required
@@ -182,7 +171,6 @@ export function DesktopRegister() {
                 </div>
               </div>
 
-              {/* Email */}
               <div className="space-y-2">
                 <Label>Email Address</Label>
                 <div className="relative">
@@ -194,7 +182,6 @@ export function DesktopRegister() {
                 </div>
               </div>
 
-              {/* Password */}
               <div className="space-y-2">
                 <Label>Password</Label>
                 <div className="relative">
@@ -209,7 +196,6 @@ export function DesktopRegister() {
                 </div>
               </div>
 
-              {/* Date of Birth & Gender Row */}
               <div className="grid grid-cols-2 gap-4">
                 {selectedRole !== 'BUSINESS' && (
                   <div className="space-y-2">
@@ -217,7 +203,6 @@ export function DesktopRegister() {
                     <Input name="dateOfBirth" type="date" onChange={handleChange} className="h-12 rounded-[20px] border-border" />
                   </div>
                 )}
-                {/* Gender - Ẩn nếu là Business */}
                 {selectedRole !== 'BUSINESS' && (
                   <div className="space-y-2">
                     <Label>Gender</Label>
@@ -237,9 +222,6 @@ export function DesktopRegister() {
               <div className="relative flex justify-center"><span className="bg-card px-4 text-xs text-muted-foreground uppercase">Role Specific Details</span></div>
             </div>
 
-            {/* 3. DYNAMIC FIELDS (Giữ nguyên UI logic cũ) */}
-
-            {/* --- TRAINEE FIELDS --- */}
             {selectedRole === 'TRAINEE' && (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -262,7 +244,6 @@ export function DesktopRegister() {
               </div>
             )}
 
-            {/* --- TRAINER FIELDS --- */}
             {selectedRole === 'TRAINER' && (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
                 <div className="space-y-2">
@@ -286,7 +267,6 @@ export function DesktopRegister() {
               </div>
             )}
 
-            {/* --- BUSINESS FIELDS --- */}
             {selectedRole === 'BUSINESS' && (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
                 <div className="space-y-2">

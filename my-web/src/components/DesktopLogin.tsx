@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import { MascotFull } from "./MascotFull";
+import { MascotLogo } from "./MascotLogo";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
@@ -15,7 +16,7 @@ export function DesktopLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<"TRAINEE" | "TRAINER" | "BUSINESS" | null>(null);
+  const [selectedRole, setSelectedRole] = useState<"TRAINEE" | "TRAINER" | "BUSINESS" | "ADMIN" | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -23,9 +24,10 @@ export function DesktopLogin() {
   const navigate = useNavigate();
 
   const roleConfig = [
-    { type: "TRAINEE" as const, icon: Home, color: "bg-blue-500", label: "Member", description: "Find trainers & book sessions" },
+    { type: "TRAINEE" as const, icon: Home, color: "bg-blue-500", label: "Trainee", description: "Find trainers & book sessions" },
     { type: "TRAINER" as const, icon: Dumbbell, color: "bg-orange-500", label: "Trainer", description: "Manage bookings & sessions" },
     { type: "BUSINESS" as const, icon: Package, color: "bg-green-500", label: "Business", description: "Manage gym & products" },
+    { type: "ADMIN" as const, icon: Lock, color: "bg-purple-500", label: "Admin", description: "Manage users & orders" },
   ];
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -33,7 +35,7 @@ export function DesktopLogin() {
     setError("");
 
     if (!selectedRole) {
-      setError("Vui lòng chọn vai trò.");
+      setError("Please select a role.");
       return;
     }
 
@@ -43,14 +45,14 @@ export function DesktopLogin() {
       const payload = { username: email, password, role: selectedRole };
       const response: any = await api.post("/auth/login", payload);
       if (response && response.token) {
-        const userData = { email, role: selectedRole as 'TRAINEE' | 'TRAINER' | 'BUSINESS' };
+        const userData = { email, role: selectedRole as 'TRAINEE' | 'TRAINER' | 'BUSINESS' | 'ADMIN' };
         login(response.token, userData);
         navigate('/home');
       } else {
         setError("Invalid response from server.");
       }
     } catch (err: any) {
-      const errorMsg = err?.message || "Đăng nhập thất bại. Vui lòng kiểm tra thông tin.";
+      const errorMsg = err?.message || "Login failed. Please check your credentials.";
       setError(errorMsg);
       console.error("Login error:", err);
     } finally {
@@ -58,7 +60,7 @@ export function DesktopLogin() {
     }
   };
 
-  const selectRole = (role: "TRAINEE" | "TRAINER" | "BUSINESS") => {
+  const selectRole = (role: "TRAINEE" | "TRAINER" | "BUSINESS" | "ADMIN") => {
     setSelectedRole(role);
     setError("");
   };
@@ -80,7 +82,8 @@ export function DesktopLogin() {
         </div>
 
         <Card className="rounded-[20px] border-border p-8 bg-card shadow-lg">
-          <div className="mb-8">
+          <div className="mb-8 flex flex-col items-center">
+            <MascotLogo className="w-20 h-20 mb-4" />
             <h2 className="text-foreground mb-2">Sign In</h2>
             <p className="text-muted-foreground">Enter your credentials to access your account</p>
           </div>
@@ -149,7 +152,7 @@ export function DesktopLogin() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {roleConfig.map((role) => {
               const Icon = role.icon;
               const isSelected = selectedRole === role.type;

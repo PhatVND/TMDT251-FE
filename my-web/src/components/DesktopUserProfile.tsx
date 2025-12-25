@@ -1,4 +1,4 @@
-import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Edit, Camera, Save, LogOut } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, Edit, Camera, Save, LogOut } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
@@ -7,7 +7,8 @@ import { Textarea } from "./ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { userService, type UserProfile, type UserUpdateData } from "../services/userService";
 
 interface DesktopUserProfileProps {
   onBack: () => void;
@@ -17,32 +18,111 @@ interface DesktopUserProfileProps {
 
 export function DesktopUserProfile({ onBack, userType = "Customer", onLogout }: DesktopUserProfileProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [profileData, setProfileData] = useState({
-    name: "John Anderson",
-    email: "john.anderson@email.com",
-    phone: "+1 (555) 123-4567",
-    location: "New York, NY",
-    dateOfBirth: "1990-05-15",
-    bio: "Fitness enthusiast passionate about strength training and healthy living. Looking to achieve my best physique and overall wellness.",
-    fitnessGoals: "Build muscle, Lose weight, Improve endurance",
-    memberSince: "Jan 2024",
-  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [profileData, setProfileData] = useState<UserProfile | null>(null);
+  const [formData, setFormData] = useState<UserUpdateData>({});
 
-  const stats = [
-    { label: "Sessions Booked", value: "24" },
-    { label: "Products Purchased", value: "12" },
-    { label: "Reviews Written", value: "8" },
-    { label: "Member Level", value: "Gold" },
-  ];
+  useEffect(() => {
+    loadProfile();
+  }, []);
 
-  const handleSave = () => {
-    setIsEditing(false);
-    // In real app, save to backend
+  const loadProfile = async () => {
+    try {
+      setLoading(true);
+      const data = await userService.getCurrentUser();
+      setProfileData(data);
+      setFormData({
+        fullName: data.fullName || '',
+        email: data.email || '',
+        phoneNumber: data.phoneNumber || '',
+        dateOfBirth: data.dateOfBirth || '',
+        gender: data.gender,
+        goal: data.goal || '',
+        height: data.height || '',
+        weight: data.weight || '',
+        bio: data.bio || '',
+        specialty: data.specialty || '',
+        experienceYear: data.experienceYear,
+        certificate: data.certificate || '',
+        address: data.address || '',
+        taxCode: data.taxCode || '',
+        businessName: data.businessName || '',
+      });
+    } catch (error) {
+      console.error("Error loading profile:", error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const updated = await userService.updateCurrentUser(formData);
+      setProfileData(updated);
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      alert("Failed to save profile. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getRoleDisplay = (role?: string) => {
+    if (!role) return userType;
+    if (role === "TRAINER") return "Personal Trainer";
+    if (role === "TRAINEE") return "Trainee";
+    if (role === "BUSINESS") return "Business";
+    if (role === "ADMIN") return "Admin";
+    return role;
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map(n => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    } catch {
+      return dateString;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profileData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-muted-foreground">Failed to load profile</p>
+          <Button onClick={onBack}>Go Back</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <div className="border-b border-border bg-white">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <Button variant="ghost" onClick={onBack} className="gap-2">
@@ -54,61 +134,54 @@ export function DesktopUserProfile({ onBack, userType = "Customer", onLogout }: 
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-3 gap-6">
-          {/* Left Sidebar - Profile Card */}
           <div className="space-y-6">
             <Card className="rounded-[20px] border-border p-6">
               <div className="text-center mb-6">
                 <div className="relative inline-block mb-4">
                   <Avatar className="w-32 h-32">
-                    <AvatarImage src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80" />
-                    <AvatarFallback>JA</AvatarFallback>
+                    <AvatarImage src="" />
+                    <AvatarFallback className="text-2xl">{getInitials(profileData.fullName)}</AvatarFallback>
                   </Avatar>
-                  <Button
-                    size="icon"
-                    className="absolute bottom-0 right-0 rounded-full w-10 h-10 bg-primary text-white"
-                  >
-                    <Camera className="w-5 h-5" />
-                  </Button>
+                  {isEditing && (
+                    <Button
+                      size="icon"
+                      className="absolute bottom-0 right-0 rounded-full w-10 h-10 bg-primary text-white"
+                    >
+                      <Camera className="w-5 h-5" />
+                    </Button>
+                  )}
                 </div>
-                <h2 className="text-foreground mb-1">{profileData.name}</h2>
-                <p className="text-muted-foreground mb-2">{userType}</p>
-                <Badge className="bg-primary text-white">Gold Member</Badge>
+                <h2 className="text-foreground mb-1">{profileData.fullName || "User"}</h2>
+                <p className="text-muted-foreground mb-2">{getRoleDisplay(profileData.role)}</p>
+                <Badge className="bg-primary text-white">Active Member</Badge>
               </div>
 
               <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Mail className="w-4 h-4" />
-                  {profileData.email}
+                  {profileData.email || "N/A"}
                 </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Phone className="w-4 h-4" />
-                  {profileData.phone}
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <MapPin className="w-4 h-4" />
-                  {profileData.location}
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Calendar className="w-4 h-4" />
-                  Member since {profileData.memberSince}
-                </div>
-              </div>
-            </Card>
-
-            {/* Stats Card */}
-            <Card className="rounded-[20px] border-border p-6">
-              <h3 className="text-foreground mb-4">Activity Stats</h3>
-              <div className="space-y-4">
-                {stats.map((stat, index) => (
-                  <div key={index} className="flex justify-between items-center">
-                    <span className="text-muted-foreground">{stat.label}</span>
-                    <span className="text-foreground">{stat.value}</span>
+                {profileData.phoneNumber && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Phone className="w-4 h-4" />
+                    {profileData.phoneNumber}
                   </div>
-                ))}
+                )}
+                {profileData.address && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <MapPin className="w-4 h-4" />
+                    {profileData.address}
+                  </div>
+                )}
+                {profileData.dateOfBirth && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Calendar className="w-4 h-4" />
+                    {formatDate(profileData.dateOfBirth)}
+                  </div>
+                )}
               </div>
             </Card>
 
-            {/* Logout Button */}
             <Button 
               variant="outline" 
               className="w-full h-12 rounded-[20px] border-2 border-border hover:border-destructive hover:text-destructive hover:bg-destructive/10 transition-colors gap-2"
@@ -119,7 +192,6 @@ export function DesktopUserProfile({ onBack, userType = "Customer", onLogout }: 
             </Button>
           </div>
 
-          {/* Main Content - Profile Details */}
           <div className="col-span-2">
             <Card className="rounded-[20px] border-border p-6">
               <div className="flex justify-between items-center mb-6">
@@ -131,12 +203,15 @@ export function DesktopUserProfile({ onBack, userType = "Customer", onLogout }: 
                   </Button>
                 ) : (
                   <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setIsEditing(false)}>
+                    <Button variant="outline" onClick={() => {
+                      setIsEditing(false);
+                      loadProfile();
+                    }}>
                       Cancel
                     </Button>
-                    <Button onClick={handleSave} className="bg-primary text-white gap-2">
+                    <Button onClick={handleSave} className="bg-primary text-white gap-2" disabled={saving}>
                       <Save className="w-4 h-4" />
-                      Save Changes
+                      {saving ? "Saving..." : "Save Changes"}
                     </Button>
                   </div>
                 )}
@@ -150,18 +225,22 @@ export function DesktopUserProfile({ onBack, userType = "Customer", onLogout }: 
                   >
                     Personal Info
                   </TabsTrigger>
-                  <TabsTrigger
-                    value="fitness"
-                    className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
-                  >
-                    Fitness Profile
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="preferences"
-                    className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
-                  >
-                    Preferences
-                  </TabsTrigger>
+                  {(profileData.role === "TRAINEE" || profileData.role === "TRAINER") && (
+                    <TabsTrigger
+                      value="fitness"
+                      className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
+                    >
+                      {profileData.role === "TRAINER" ? "Professional Info" : "Fitness Profile"}
+                    </TabsTrigger>
+                  )}
+                  {profileData.role === "BUSINESS" && (
+                    <TabsTrigger
+                      value="business"
+                      className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
+                    >
+                      Business Info
+                    </TabsTrigger>
+                  )}
                 </TabsList>
 
                 <TabsContent value="personal" className="space-y-4">
@@ -169,10 +248,8 @@ export function DesktopUserProfile({ onBack, userType = "Customer", onLogout }: 
                     <div className="space-y-2">
                       <Label>Full Name</Label>
                       <Input
-                        value={profileData.name}
-                        onChange={(e) =>
-                          setProfileData({ ...profileData, name: e.target.value })
-                        }
+                        value={formData.fullName || ''}
+                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                         disabled={!isEditing}
                         className="border-border"
                       />
@@ -180,10 +257,8 @@ export function DesktopUserProfile({ onBack, userType = "Customer", onLogout }: 
                     <div className="space-y-2">
                       <Label>Email</Label>
                       <Input
-                        value={profileData.email}
-                        onChange={(e) =>
-                          setProfileData({ ...profileData, email: e.target.value })
-                        }
+                        value={formData.email || ''}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         disabled={!isEditing}
                         className="border-border"
                       />
@@ -191,10 +266,8 @@ export function DesktopUserProfile({ onBack, userType = "Customer", onLogout }: 
                     <div className="space-y-2">
                       <Label>Phone</Label>
                       <Input
-                        value={profileData.phone}
-                        onChange={(e) =>
-                          setProfileData({ ...profileData, phone: e.target.value })
-                        }
+                        value={formData.phoneNumber || ''}
+                        onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                         disabled={!isEditing}
                         className="border-border"
                       />
@@ -203,142 +276,164 @@ export function DesktopUserProfile({ onBack, userType = "Customer", onLogout }: 
                       <Label>Date of Birth</Label>
                       <Input
                         type="date"
-                        value={profileData.dateOfBirth}
-                        onChange={(e) =>
-                          setProfileData({ ...profileData, dateOfBirth: e.target.value })
-                        }
+                        value={formData.dateOfBirth || ''}
+                        onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                         disabled={!isEditing}
                         className="border-border"
                       />
                     </div>
-                    <div className="space-y-2 col-span-2">
-                      <Label>Location</Label>
-                      <Input
-                        value={profileData.location}
-                        onChange={(e) =>
-                          setProfileData({ ...profileData, location: e.target.value })
-                        }
-                        disabled={!isEditing}
-                        className="border-border"
-                      />
-                    </div>
-                    <div className="space-y-2 col-span-2">
-                      <Label>Bio</Label>
-                      <Textarea
-                        value={profileData.bio}
-                        onChange={(e) =>
-                          setProfileData({ ...profileData, bio: e.target.value })
-                        }
-                        disabled={!isEditing}
-                        rows={4}
-                        className="border-border resize-none"
-                      />
-                    </div>
+                    {(profileData.role === "TRAINEE" || profileData.role === "TRAINER") && (
+                      <div className="space-y-2">
+                        <Label>Gender</Label>
+                        <select
+                          value={formData.gender || ''}
+                          onChange={(e) => setFormData({ ...formData, gender: e.target.value as 'MALE' | 'FEMALE' })}
+                          disabled={!isEditing}
+                          className="w-full h-10 rounded-md border border-border bg-background px-3"
+                        >
+                          <option value="">Select Gender</option>
+                          <option value="MALE">Male</option>
+                          <option value="FEMALE">Female</option>
+                        </select>
+                      </div>
+                    )}
+                    {profileData.role === "BUSINESS" && (
+                      <div className="space-y-2">
+                        <Label>Address</Label>
+                        <Input
+                          value={formData.address || ''}
+                          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                          disabled={!isEditing}
+                          className="border-border"
+                        />
+                      </div>
+                    )}
+                    {(profileData.role === "TRAINEE" || profileData.role === "TRAINER") && (
+                      <div className="space-y-2 col-span-2">
+                        <Label>Bio</Label>
+                        <Textarea
+                          value={formData.bio || ''}
+                          onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                          disabled={!isEditing}
+                          rows={4}
+                          className="border-border resize-none"
+                        />
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
 
-                <TabsContent value="fitness" className="space-y-4">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Fitness Goals</Label>
-                      <Input
-                        value={profileData.fitnessGoals}
-                        onChange={(e) =>
-                          setProfileData({ ...profileData, fitnessGoals: e.target.value })
-                        }
-                        disabled={!isEditing}
-                        className="border-border"
-                        placeholder="e.g., Build muscle, Lose weight"
-                      />
-                    </div>
+                {(profileData.role === "TRAINEE" || profileData.role === "TRAINER") && (
+                  <TabsContent value="fitness" className="space-y-4">
+                    {profileData.role === "TRAINEE" ? (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Fitness Goals</Label>
+                          <Input
+                            value={formData.goal || ''}
+                            onChange={(e) => setFormData({ ...formData, goal: e.target.value })}
+                            disabled={!isEditing}
+                            className="border-border"
+                            placeholder="e.g., Build muscle, Lose weight"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Height (cm)</Label>
+                            <Input
+                              type="number"
+                              value={formData.height || ''}
+                              onChange={(e) => setFormData({ ...formData, height: e.target.value })}
+                              disabled={!isEditing}
+                              className="border-border"
+                              placeholder="175"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Weight (kg)</Label>
+                            <Input
+                              type="number"
+                              value={formData.weight || ''}
+                              onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                              disabled={!isEditing}
+                              className="border-border"
+                              placeholder="70"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Specialty</Label>
+                          <Input
+                            value={formData.specialty || ''}
+                            onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
+                            disabled={!isEditing}
+                            className="border-border"
+                            placeholder="Yoga, Bodybuilding, HIIT..."
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Experience (Years)</Label>
+                          <Input
+                            type="number"
+                            value={formData.experienceYear || ''}
+                            onChange={(e) => setFormData({ ...formData, experienceYear: parseInt(e.target.value) || 0 })}
+                            disabled={!isEditing}
+                            className="border-border"
+                            placeholder="5"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Certificate</Label>
+                          <Input
+                            value={formData.certificate || ''}
+                            onChange={(e) => setFormData({ ...formData, certificate: e.target.value })}
+                            disabled={!isEditing}
+                            className="border-border"
+                            placeholder="Certification details"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+                )}
 
-                    <div className="grid grid-cols-2 gap-4">
+                {profileData.role === "BUSINESS" && (
+                  <TabsContent value="business" className="space-y-4">
+                    <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label>Current Weight (lbs)</Label>
+                        <Label>Business Name</Label>
                         <Input
-                          type="number"
-                          placeholder="180"
+                          value={formData.businessName || ''}
+                          onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
                           disabled={!isEditing}
                           className="border-border"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Target Weight (lbs)</Label>
+                        <Label>Tax Code</Label>
                         <Input
-                          type="number"
-                          placeholder="170"
+                          value={formData.taxCode || ''}
+                          onChange={(e) => setFormData({ ...formData, taxCode: e.target.value })}
                           disabled={!isEditing}
                           className="border-border"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Height (cm)</Label>
-                        <Input
-                          type="number"
-                          placeholder="175"
+                        <Label>Address</Label>
+                        <Textarea
+                          value={formData.address || ''}
+                          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                           disabled={!isEditing}
-                          className="border-border"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Fitness Level</Label>
-                        <Input
-                          placeholder="Intermediate"
-                          disabled={!isEditing}
-                          className="border-border"
+                          rows={3}
+                          className="border-border resize-none"
                         />
                       </div>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label>Medical Conditions / Injuries</Label>
-                      <Textarea
-                        placeholder="Any conditions your trainer should know about..."
-                        disabled={!isEditing}
-                        rows={3}
-                        className="border-border resize-none"
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="preferences" className="space-y-4">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Preferred Training Time</Label>
-                      <Input
-                        placeholder="Morning / Afternoon / Evening"
-                        disabled={!isEditing}
-                        className="border-border"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Preferred Training Type</Label>
-                      <Input
-                        placeholder="Strength, Cardio, Yoga, etc."
-                        disabled={!isEditing}
-                        className="border-border"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Budget Range (per session)</Label>
-                      <Input
-                        placeholder="$50 - $100"
-                        disabled={!isEditing}
-                        className="border-border"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Special Requirements</Label>
-                      <Textarea
-                        placeholder="Any special requirements or preferences..."
-                        disabled={!isEditing}
-                        rows={3}
-                        className="border-border resize-none"
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
+                  </TabsContent>
+                )}
               </Tabs>
             </Card>
           </div>

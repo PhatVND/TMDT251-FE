@@ -1,4 +1,4 @@
-import { ShoppingCart, User, Bell } from "lucide-react";
+import { ShoppingCart, User, Bell, LogOut } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { MascotLogo } from "./MascotLogo";
@@ -58,46 +58,59 @@ export function DesktopHeader({
             </div>
 
             {/* Navigation */}
-            <nav className="hidden md:flex items-center gap-6">
-              <Button variant="ghost" className="text-foreground" onClick={onNavigateTrainers || onNavigateHome}>
-                Find Trainers
-              </Button>
-              <Button variant="ghost" className="text-foreground" onClick={onNavigateMyPT}>
-                My PT
-              </Button>
-              <Button variant="ghost" className="text-foreground" onClick={onNavigateMarketplace}>
-                Marketplace
-              </Button>
-              <Button variant="ghost" className="text-foreground" onClick={onNavigateAbout}>
-                About
-              </Button>
-            </nav>
+            {userType !== "Admin" && (
+              <nav className="hidden md:flex items-center gap-6">
+                <Button variant="ghost" className="text-foreground" onClick={onNavigateTrainers || onNavigateHome}>
+                  Find Trainers
+                </Button>
+                <Button variant="ghost" className="text-foreground" onClick={onNavigateMyPT}>
+                  My PT
+                </Button>
+                <Button variant="ghost" className="text-foreground" onClick={onNavigateMarketplace}>
+                  Marketplace
+                </Button>
+                <Button variant="ghost" className="text-foreground" onClick={onNavigateAbout}>
+                  About
+                </Button>
+              </nav>
+            )}
 
             {/* Actions */}
             <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative"
-                onClick={() => setShowNotifications(!showNotifications)}
-              >
-                <Bell className="w-5 h-5 text-foreground" />
-                <Badge className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary text-white border-0 p-0 flex items-center justify-center text-xs">
-                  3
-                </Badge>
-              </Button>
-              <Button variant="ghost" size="icon" className="relative" onClick={onNavigateCart}>
-                <ShoppingCart className="w-5 h-5 text-foreground" />
-                <Badge className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary text-white border-0 p-0 flex items-center justify-center text-xs">
-                  {cartCount}
-                </Badge>
-              </Button>
-              <Button variant="ghost" size="icon" onClick={onNavigateProfile}>
+              {userType !== "Admin" && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative"
+                    onClick={() => setShowNotifications(!showNotifications)}
+                  >
+                    <Bell className="w-5 h-5 text-foreground" />
+                    <Badge className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary text-white border-0 p-0 flex items-center justify-center text-xs">
+                      3
+                    </Badge>
+                  </Button>
+                  <Button variant="ghost" size="icon" className="relative" onClick={onNavigateCart}>
+                    <ShoppingCart className="w-5 h-5 text-foreground" />
+                    <Badge className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary text-white border-0 p-0 flex items-center justify-center text-xs">
+                      {cartCount}
+                    </Badge>
+                  </Button>
+                </>
+              )}
+              <Button variant="ghost" size="icon" onClick={onNavigateProfile} title="Thông tin tài khoản">
                 <User className="w-5 h-5 text-foreground" />
               </Button>
-              <Button className="bg-primary text-white" onClick={onBookSession}>
-                {userType === "Customer" ? "Book Session" : "Dashboard"}
-              </Button>
+              {userType === "Admin" ? (
+                <Button variant="outline" className="gap-2" onClick={onSwitchUser}>
+                  <LogOut className="w-4 h-4" />
+                  Log out
+                </Button>
+              ) : (
+                <Button className="bg-primary text-white" onClick={onBookSession}>
+                  {userType === "Customer" ? "Book Session" : "Dashboard"}
+                </Button>
+              )}
             </div>
           </div>
         </div>
